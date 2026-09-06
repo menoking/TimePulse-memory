@@ -1,0 +1,846 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-background: 255, 255, 255;
+  --color-foreground: 17, 24, 39;
+  --color-primary: 14, 165, 233;
+  --color-accent: 79, 70, 229;
+  --transition-duration: 300ms;
+  --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 替换为所有元素的过渡效果，改为更具体的选择器，减少对性能的影响 */
+.transition-enabled {
+  -webkit-transition: color var(--transition-duration) var(--transition-timing),
+    background-color var(--transition-duration) var(--transition-timing),
+    border-color var(--transition-duration) var(--transition-timing),
+    -webkit-box-shadow var(--transition-duration) var(--transition-timing),
+    box-shadow var(--transition-duration) var(--transition-timing),
+    opacity var(--transition-duration) var(--transition-timing);
+  transition: color var(--transition-duration) var(--transition-timing),
+    background-color var(--transition-duration) var(--transition-timing),
+    border-color var(--transition-duration) var(--transition-timing),
+    -webkit-box-shadow var(--transition-duration) var(--transition-timing),
+    box-shadow var(--transition-duration) var(--transition-timing),
+    opacity var(--transition-duration) var(--transition-timing);
+}
+
+/* 为界面元素添加过渡效果，而不是所有元素 */
+button,
+a,
+input,
+select,
+.glass-card,
+.btn {
+  -webkit-transition: color var(--transition-duration) var(--transition-timing),
+    background-color var(--transition-duration) var(--transition-timing),
+    border-color var(--transition-duration) var (--transition-timing),
+    -webkit-box-shadow var(--transition-duration) var(--transition-timing),
+    box-shadow var(--transition-duration) var(--transition-timing),
+    opacity var(--transition-duration) var(--transition-timing);
+  transition: color var(--transition-duration) var(--transition-timing),
+    background-color var(--transition-duration) var (--transition-timing),
+    border-color var(--transition-duration) var (--transition-timing),
+    -webkit-box-shadow var(--transition-duration) var(--transition-timing),
+    box-shadow var(--transition-duration) var(--transition-timing),
+    opacity var(--transition-duration) var(--transition-timing);
+}
+
+/* Firefox特定优化 - 修复弹窗动画闪烁问题 */
+@-moz-document url-prefix() {
+  /* 为Firefox添加硬件加速 */
+  .glass-card,
+  .moving-circle,
+  .digit-column,
+  .modal-container,
+  .modal-content {
+    transform: translateZ(0);
+    will-change: transform;
+    /* 强制Firefox使用硬件加速层 */
+    -moz-osx-font-smoothing: grayscale;
+    -moz-backface-visibility: hidden;
+  }
+
+  /* 修复Firefox中过渡动画的闪烁问题 */
+  .modal-container {
+    animation-fill-mode: both;
+    backface-visibility: hidden;
+    perspective: 1000px;
+    /* 禁用Firefox中的transition，使用animation代替 */
+    transition: none !important;
+    /* 强制Firefox使用固定背景 */
+    background: rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .modal-content {
+    animation-fill-mode: both;
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    /* 完全禁用过渡效果 */
+    transition: none !important;
+    /* 调整为更接近原始透明度的毛玻璃效果 */
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    /* 移除Tailwind的bg类影响 */
+    --tw-bg-opacity: 1 !important;
+  }
+
+  .dark .modal-content {
+    background: rgba(0, 0, 0, 0.35) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  }
+
+  /* 覆盖所有可能的glass-card相关样式 */
+  .modal-content.glass-card {
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+  }
+
+  .dark .modal-content.glass-card {
+    background: rgba(0, 0, 0, 0.35) !important;
+  }
+
+  /* Firefox中禁用某些可能导致闪烁的效果 */
+  button,
+  a,
+  input,
+  select,
+  .glass-card,
+  .btn {
+    backface-visibility: hidden;
+    perspective: 1000px;
+    /* 减少Firefox中的过渡属性 */
+    transition: background-color var(--transition-duration) var(--transition-timing) !important;
+  }
+
+  /* 为Firefox优化过渡时长，避免动画结束时的透明度跳变 */
+  :root {
+    --transition-duration: 250ms;
+    --transition-timing: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  /* Firefox中的玻璃效果优化 - 调整透明度 */
+  .glass-effect,
+  .glass-card {
+    transform: translate3d(0, 0, 0);
+    image-rendering: -moz-crisp-edges;
+    /* 调整为更合适的透明度 */
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
+  }
+
+  .dark .glass-effect,
+  .dark .glass-card {
+    background: rgba(0, 0, 0, 0.35) !important;
+  }
+
+  /* 强制覆盖Tailwind的背景透明度设置 */
+  .bg-white\/70,
+  .dark\:bg-black\/30 {
+    background: rgba(255, 255, 255, 0.55) !important;
+  }
+
+  .dark .bg-white\/70,
+  .dark .dark\:bg-black\/30 {
+    background: rgba(0, 0, 0, 0.35) !important;
+  }
+
+  /* Firefox专用：强制禁用所有可能导致闪烁的动画属性 */
+  .modal-container *,
+  .modal-content * {
+    animation-fill-mode: both;
+    transform: translateZ(0);
+  }
+
+  /* Firefox专用：重写弹窗动画类 - 完全不使用opacity */
+  .modal-enter {
+    animation: firefoxFadeIn 0.25s ease-out forwards !important;
+  }
+
+  .modal-exit {
+    animation: firefoxFadeOut 0.25s ease-in forwards !important;
+  }
+
+  /* Firefox专用动画关键帧 - 纯transform动画 */
+  @keyframes firefoxFadeIn {
+    0% {
+      transform: translate3d(0, -10px, 0) scale(0.98);
+    }
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  @keyframes firefoxFadeOut {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    100% {
+      transform: translate3d(0, -10px, 0) scale(0.98);
+    }
+  }
+
+  /* Firefox专用：修复弹窗背景遮罩的透明度问题 */
+  .modal-container {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+  }
+}
+
+/* Safari特定优化 */
+@media not all and (min-resolution: 0.001dpcm) {
+  @supports (-webkit-appearance: none) {
+    /* 为Safari增加硬件加速 */
+    .glass-card,
+    .moving-circle,
+    .digit-column {
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
+
+    /* 减少Safari中的动画过渡持续时间 */
+    :root {
+      --transition-duration: 200ms;
+    }
+
+    /* 禁用Safari中可能导致抖动的背景模糊效果 */
+    @supports (-webkit-backdrop-filter: blur(1px)) {
+      .glass-effect,
+      .glass-card {
+        -webkit-backdrop-filter: blur(10px);
+      }
+    }
+  }
+}
+
+/* 为不支持CSS变量的浏览器提供备选值 */
+@supports not (--foo: bar) {
+  * {
+    -webkit-transition: color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      -webkit-box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      -webkit-box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+.dark {
+  --color-background: 18, 18, 18;
+  --color-foreground: 255, 255, 255;
+  --color-primary: 56, 189, 248;
+  --color-accent: 124, 58, 237;
+}
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-100 transition-colors duration-300;
+    font-family: "Inter", sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* 确保文字在浅色模式下高对比度 */
+  .text-gray-600 {
+    @apply dark:text-gray-300;
+  }
+
+  .text-gray-500 {
+    @apply dark:text-gray-400;
+  }
+
+  /* 确保半透明卡片上的文字在浅色模式下可读 */
+  .glass-card {
+    @apply text-gray-800 dark:text-gray-100;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 dark:bg-black/30 backdrop-blur-lg border border-gray-200 dark:border-white/10 rounded-2xl shadow-lg text-gray-800 dark:text-gray-100;
+    /* 添加硬件加速，避免Safari中的抖动问题 */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: transform;
+    /* Firefox优化：避免透明度闪烁 */
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  .btn {
+    @apply px-4 py-2 rounded-full font-medium transition duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-500 hover:bg-primary-600 text-white;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800;
+  }
+
+  /* 玻璃态操作按钮样式 - 用于取消、上一步等操作 */
+  .btn-glass-secondary {
+    @apply px-4 py-2 rounded-lg font-medium transition duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer;
+    background: rgba(255, 255, 255, 0.15);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(0, 0, 0, 0.8);
+  }
+
+  .dark .btn-glass-secondary {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .btn-glass-secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .dark .btn-glass-secondary:hover {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* 玻璃态主要操作按钮样式 - 用于确认、下一步、创建等操作 */
+  .btn-glass-primary {
+    @apply px-4 py-2 rounded-lg font-medium transition duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer;
+    background: rgba(var(--color-primary), 0.3);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(var(--color-primary), 0.4);
+    color: rgb(var(--color-primary));
+    font-weight: 600;
+  }
+
+  .btn-glass-primary:hover {
+    background: rgba(var(--color-primary), 0.4);
+    border: 1px solid rgba(var(--color-primary), 0.5);
+    color: rgba(var(--color-primary), 0.9);
+  }
+
+  .btn-glass-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* 玻璃态悬停效果 - 主题色半透明背景 */
+  .btn-glass-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-glass-hover:hover {
+    background: rgba(var(--color-primary), 0.1);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  .dark .btn-glass-hover:hover {
+    background: rgba(var(--color-primary), 0.3);
+  }
+
+  .digit-column {
+    @apply relative overflow-hidden text-center;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: transform;
+  }
+
+  .backdrop-blur-xs {
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+
+  /* 动态主题色按钮 */
+  .btn-theme {
+    color: rgb(var(--color-primary));
+    transition: color var(--transition-duration) ease;
+  }
+
+  .btn-theme:hover {
+    color: rgba(var(--color-primary), 0.8);
+  }
+
+  /* 弹窗内容滚动优化 - 添加Firefox闪烁修复 */
+  .modal-container {
+    @apply fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm overflow-y-auto py-4;
+    /* Firefox优化：防止动画闪烁 */
+    animation-fill-mode: both;
+    backface-visibility: hidden;
+    perspective: 1000px;
+    transform: translateZ(0);
+  }
+
+  .modal-content {
+    @apply glass-card w-full m-4 p-4 sm:p-6 rounded-2xl max-h-[90vh] overflow-y-auto;
+    /* Firefox优化：防止动画闪烁 */
+    animation-fill-mode: both;
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    /* 移除固定透明度设置，让毛玻璃效果自然显示 */
+  }
+
+  /* 针对较小屏幕的弹窗内边距优化 */
+  @media (max-height: 600px) {
+    .modal-content {
+      @apply p-3 max-h-[95vh];
+    }
+
+    .modal-content .space-y-4 {
+      @apply space-y-2;
+    }
+  }
+}
+
+/* 动画效果 - 优化Safari性能 */
+.animate-gradient {
+  background-size: 400% 400%;
+  -webkit-animation: gradient 15s ease infinite;
+  animation: gradient 15s ease infinite;
+  /* 添加硬件加速 */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+}
+
+@-webkit-keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@-webkit-keyframes digitSlideUp {
+  0% {
+    opacity: 1;
+    -webkit-transform: translateY(0);
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    -webkit-transform: translateY(-100%);
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes digitSlideUp {
+  0% {
+    opacity: 1;
+    -webkit-transform: translateY(0);
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    -webkit-transform: translateY(-100%);
+    transform: translateY(-100%);
+  }
+}
+
+@-webkit-keyframes digitSlideDown {
+  0% {
+    opacity: 0;
+    -webkit-transform: translateY(100%);
+    transform: translateY(100%);
+  }
+  100% {
+    opacity: 1;
+    -webkit-transform: translateY(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes digitSlideDown {
+  0% {
+    opacity: 0;
+    -webkit-transform: translateY(100%);
+    transform: translateY(100%);
+  }
+  100% {
+    opacity: 1;
+    -webkit-transform: translateY(0);
+    transform: translateY(0);
+  }
+}
+
+@-webkit-keyframes float {
+  0%,
+  100% {
+    -webkit-transform: translateY(0);
+    transform: translateY(0);
+  }
+  50% {
+    -webkit-transform: translateY(-10px);
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    -webkit-transform: translateY(0);
+    transform: translateY(0);
+  }
+  50% {
+    -webkit-transform: translateY(-10px);
+    transform: translateY(-10px);
+  }
+}
+
+/* 背景圆圈动画 - 添加硬件加速减少Safari中的抖动 */
+.moving-circle {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.5;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+}
+
+/* 数字滚动动画 - 优化Safari性能 */
+.digit-wrapper {
+  height: 1.2em;
+  line-height: 1.2em;
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+}
+
+/* 玻璃态主题色悬停效果样式 */
+.hover-glass-theme {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-glass-theme:hover {
+  background: rgba(var(--color-primary), 0.15) !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-color: rgba(var(--color-primary), 0.25) !important;
+}
+
+.dark .hover-glass-theme:hover {
+  background: rgba(var(--color-primary), 0.2) !important;
+  border-color: rgba(var(--color-primary), 0.3) !important;
+}
+.digit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* 玻璃效果 - 降低Safari中的模糊强度，提高性能 */
+.glass-effect {
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  backdrop-filter: blur(10px) saturate(180%);
+  background-color: rgba(255, 255, 255, 0.75); /* 增加不透明度 */
+  border: 1px solid rgba(200, 200, 200, 0.3); /* 增加边框可见度 */
+  color: rgba(0, 0, 0, 0.8); /* 确保文字颜色 */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* 为不支持backdrop-filter的浏览器提供替代样式 */
+@supports not (
+  (-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))
+) {
+  .glass-effect {
+    background-color: rgba(255, 255, 255, 0.9);
+  }
+
+  .dark .glass-effect {
+    background-color: rgba(17, 25, 40, 0.9);
+  }
+
+  .glass-card {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  .dark .glass-card {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+  }
+}
+
+.dark .glass-effect {
+  background-color: rgba(17, 25, 40, 0.75); /* 增加不透明度 */
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9); /* 确保文字颜色 */
+}
+
+/* 添加更多过渡动画类 */
+.transition-all-smooth {
+  -webkit-transition: all 0.5s
+    var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1));
+  transition: all 0.5s var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.transition-transform-smooth {
+  -webkit-transition: -webkit-transform 0.5s
+    var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1));
+  transition: -webkit-transform 0.5s
+    var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1));
+  transition: transform 0.5s
+    var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1));
+  transition: transform 0.5s
+      var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1)),
+    -webkit-transform 0.5s var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+.transition-colors-smooth {
+  -webkit-transition: color 0.5s
+      var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1)),
+    background-color 0.5s var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1)),
+    border-color 0.5s var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1));
+  transition: color 0.5s var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1)),
+    background-color 0.5s var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1)),
+    border-color 0.5s var(--transition-timing, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+/* 隐藏横向滚动条的工具类 */
+.hide-horizontal-scrollbar {
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.hide-horizontal-scrollbar::-webkit-scrollbar:horizontal {
+  display: none;
+}
+
+/* 用于完全隐藏滚动条的类 */
+.scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* 自定义滚动条样式 - 只隐藏页面主滚动条 */
+/* 隐藏html和body的滚动条（页面主滚动条） */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+/* Firefox 滚动条样式 - 隐藏html和body的滚动条 */
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none; /* IE滚动条样式 */
+}
+
+/* 深色模式下页面主滚动条 - 保持隐藏 */
+.dark html::-webkit-scrollbar-thumb,
+.dark body::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.dark html::-webkit-scrollbar-thumb:hover,
+.dark body::-webkit-scrollbar-thumb:hover {
+  background: transparent;
+}
+
+/* 为其他元素提供默认的滚动条样式 - 使用主题色 */
+*:not(body)::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*:not(body)::-webkit-scrollbar-track {
+  background: rgba(var(--color-primary, 14, 165, 233), 0.1);
+  border-radius: 4px;
+}
+
+*:not(body)::-webkit-scrollbar-thumb {
+  background: rgba(var(--color-primary, 14, 165, 233), 0.4);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+*:not(body)::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--color-primary, 14, 165, 233), 0.6);
+}
+
+/* 深色模式下其他元素的滚动条 - 使用深色模式主题色 */
+.dark *:not(body)::-webkit-scrollbar-track {
+  background: rgba(var(--color-primary, 56, 189, 248), 0.15);
+}
+
+.dark *:not(body)::-webkit-scrollbar-thumb {
+  background: rgba(var(--color-primary, 56, 189, 248), 0.5);
+}
+
+.dark *:not(body)::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--color-primary, 56, 189, 248), 0.7);
+}
+
+/* 平滑滚动 - 添加后备方案 */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* 适配旧版浏览器的备选字体和布局 */
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol";
+}
+
+.font-display {
+  font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
+.font-mono {
+  font-family: "Consolas", Monaco, "Courier New", monospace;
+}
+
+/* 通用动画优化 - 修复Firefox闪烁 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.95);
+  }
+}
+
+/* 为弹窗添加进入和退出动画类 - 增强版本 */
+.modal-enter {
+  animation: fadeIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-fill-mode: both;
+  /* 移除透明度强制设置，保持毛玻璃原始透明度 */
+  transform: translate3d(0, 0, 0);
+}
+
+.modal-exit {
+  animation: fadeOut 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-fill-mode: both;
+}
+
+/* 增加防闪烁的通用类 */
+.no-flicker {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Firefox专用：完全禁用有问题的过渡效果 */
+@-moz-document url-prefix() {
+  .modal-container,
+  .modal-content,
+  .glass-card {
+    transition: none !important;
+  }
+  
+  /* 强制Firefox忽略所有Tailwind背景类 - 调整透明度 */
+  .modal-content[class*="bg-"] {
+    background: rgba(255, 255, 255, 0.55) !important;
+  }
+
+  .dark .modal-content[class*="bg-"] {
+    background: rgba(0, 0, 0, 0.35) !important;
+  }
+
+  /* 使用transform代替opacity变化 */
+  .modal-container {
+    transform: translate3d(0, 0, 0);
+  }
+
+  /* 彻底重写毛玻璃卡片样式 - 调整透明度 */
+  .glass-card[class*="bg-"] {
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
+  }
+
+  .dark .glass-card[class*="bg-"] {
+    background: rgba(0, 0, 0, 0.35) !important;
+  }
+
+  /* 禁用所有可能的opacity相关动画 */
+  * {
+    animation-name: none !important;
+  }
+
+  /* 只允许我们定义的Firefox专用动画 */
+  .modal-enter {
+    animation-name: firefoxFadeIn !important;
+  }
+
+  .modal-exit {
+    animation-name: firefoxFadeOut !important;
+  }
+}
