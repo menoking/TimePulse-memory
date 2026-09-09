@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiMenu, FiX, FiSettings, FiMoon, FiSun, FiUser, FiMaximize, FiMinimize, FiEdit, FiSave, FiGlobe, FiPlus, FiShare2, FiImage } from 'react-icons/fi';
+import { FiMenu, FiX, FiSettings, FiMoon, FiSun, FiUser, FiMaximize, FiMinimize, FiEdit, FiSave, FiGlobe, FiPlus, FiShare2, FiImage, FiGrid } from 'react-icons/fi';
 import { useTimers } from '../../context/TimerContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useFullscreen } from '../../context/FullscreenContext';
@@ -10,7 +10,9 @@ import ShareModal from '../UI/ShareModal';
 import TimerTypeModal from '../UI/TimerTypeModal';
 import AddTimerModal from '../UI/AddTimerModal';
 import AddStopwatchModal from '../UI/AddStopwatchModal';
+import AddAnniversaryModal from '../UI/AddAnniversaryModal';
 import AddWorldClockModal from '../UI/AddWorldClockModal';
+import TimerOverviewModal from '../UI/TimerOverviewModal';
 import { HexColorPicker } from 'react-colorful';
 
 export default function Header() {
@@ -28,7 +30,9 @@ export default function Header() {
   const [isTimerTypeModalOpen, setIsTimerTypeModalOpen] = useState(false);
   const [isCountdownModalOpen, setIsCountdownModalOpen] = useState(false);
   const [isStopwatchModalOpen, setIsStopwatchModalOpen] = useState(false);
+  const [isAnniversaryModalOpen, setIsAnniversaryModalOpen] = useState(false);
   const [isWorldClockModalOpen, setIsWorldClockModalOpen] = useState(false);
+  const [isOverviewOpen, setIsOverviewOpen] = useState(false);
   const [showAllTabs, setShowAllTabs] = useState(false);
 
   // 添加滚动引用和悬浮延迟控制
@@ -277,8 +281,12 @@ export default function Header() {
         targetDate: new Date(timer.targetDate).toISOString().substring(0, 10),
         targetTime: new Date(timer.targetDate).toTimeString().substring(0, 5)
       });
+    } else if (timer.type === 'anniversary') {
+      const start = new Date(timer.startTime);
+      start.setMinutes(start.getMinutes() - start.getTimezoneOffset());
+      setEditingTimer({ ...timer, isLimitedEdit: true, displayMode: timer.displayMode === 'totalDays' ? 'totalDays' : 'precise', startTimeInput: start.toISOString().slice(0, 16), milestoneDaysText: (timer.milestoneDays || []).join(', ') });
     } else {
-      // 正计时和世界时钟只能编辑名字和颜色
+      // 秒表和世界时钟只编辑名字和颜色
       setEditingTimer({
         ...timer,
         isLimitedEdit: true // 标记为限制编辑模式
@@ -290,11 +298,22 @@ export default function Header() {
   const saveEditedTimer = () => {
     if (!editingTimer) return;
     
-    if (editingTimer.isLimitedEdit) {
+    if (editingTimer.type === 'anniversary') {
+      const start = new Date(editingTimer.startTimeInput);
+      if (!editingTimer.name.trim() || Number.isNaN(start.getTime()) || start > new Date()) return;
+      updateTimer(editingTimer.id, {
+        name: editingTimer.name.trim(), color: editingTimer.color, customDescription: (editingTimer.customDescription || '').trim(), startTime: start.toISOString(),
+        displayMode: editingTimer.displayMode || 'totalDays', countRule: editingTimer.countRule || 'elapsed', calendarType: editingTimer.calendarType || 'solar',
+        category: (editingTimer.category || '').trim(), isPinned: Boolean(editingTimer.isPinned), annualReminder: Boolean(editingTimer.annualReminder),
+        reminderAdvanceDays: Number(editingTimer.reminderAdvanceDays || 0),
+        milestoneDays: [...new Set((editingTimer.milestoneDaysText || '').split(/[,，\s]+/).map(Number).filter(value => value > 0))].sort((a, b) => a - b)
+      });
+    } else if (editingTimer.isLimitedEdit) {
       // 限制编辑模式：只更新名字和颜色
       updateTimer(editingTimer.id, {
         name: editingTimer.name,
-        color: editingTimer.color
+        color: editingTimer.color,
+        customDescription: (editingTimer.customDescription || '').trim()
       });
     } else {
       // 完整编辑模式：更新所有属性（倒计时）
@@ -322,6 +341,9 @@ export default function Header() {
       case 'stopwatch':
         setIsStopwatchModalOpen(true);
         break;
+      case 'anniversary':
+        setIsAnniversaryModalOpen(true);
+        break;
       case 'worldclock':
         setIsWorldClockModalOpen(true);
         break;
@@ -333,6 +355,7 @@ export default function Header() {
     setIsTimerTypeModalOpen(false);
     setIsCountdownModalOpen(false);
     setIsStopwatchModalOpen(false);
+    setIsAnniversaryModalOpen(false);
     setIsWorldClockModalOpen(false);
     if (window.location.hash === '#add') {
       window.location.hash = '';
@@ -587,6 +610,14 @@ export default function Header() {
         <div className="flex items-center justify-end z-10">
           {/* 桌面端所有按钮 */}
           <div className="hidden md:flex items-center">
+            <button
+              className="p-2 ml-1 rounded-full btn-glass-hover text-gray-700 dark:text-gray-300 cursor-pointer"
+              onClick={() => setIsOverviewOpen(true)}
+              title={t('overview.title', '时间总览')}
+              aria-label={t('overview.title', '时间总览')}
+            >
+              <FiGrid className="text-xl" />
+            </button>
             {/* 添加计时器按钮 */}
             <button
               className="p-2 ml-1 rounded-full btn-glass-hover text-gray-700 dark:text-gray-300 cursor-pointer"
@@ -728,6 +759,13 @@ export default function Header() {
             <div className="mb-4">
               <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">{t('header.functions')}</h3>
               <div className="grid grid-cols-2 gap-3">
+                <button
+                  className="flex items-center justify-between p-3 rounded-lg bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-gray-200/60 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-black/20 cursor-pointer transition-colors"
+                  onClick={() => { setIsOverviewOpen(true); setIsMenuOpen(false); }}
+                >
+                  <FiGrid className="text-xl" />
+                  <span className="text-xs ml-2 flex-1 text-right">{t('overview.title', '时间总览')}</span>
+                </button>
                 {/* 第一行 */}
                 <button
                   className="flex items-center justify-between p-3 rounded-lg bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-gray-200/60 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-black/20 cursor-pointer transition-colors"
@@ -942,6 +980,30 @@ export default function Header() {
                     />
                   </div>
 
+                  {(editingTimer.type === 'stopwatch' || editingTimer.type === 'anniversary') && (
+                    <label className="block text-sm">
+                      <span className="flex items-center justify-between"><span>{t('timer.customDescription', '自定义句子')}</span><span className="text-xs text-gray-400">{(editingTimer.customDescription || '').length}/80</span></span>
+                      <textarea value={editingTimer.customDescription || ''} maxLength={80} rows={3} onChange={e => setEditingTimer({...editingTimer, customDescription: e.target.value})} placeholder={t('timer.customDescriptionPlaceholder', '例如：每一秒，都在靠近更好的自己')} className="mt-1 w-full resize-none rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-primary-500/40 dark:border-white/10 dark:bg-black/10" />
+                      <span className="mt-1 block text-xs text-gray-500">{t('timer.customDescriptionHint', '填写后将替代计时器底部的默认状态文案')}</span>
+                    </label>
+                  )}
+
+                  {editingTimer.type === 'anniversary' && (
+                    <div className="space-y-3">
+                      <label className="block text-sm">{t('anniversary.startTime', '开始日期与时间')}<input type="datetime-local" value={editingTimer.startTimeInput || ''} onChange={e => setEditingTimer({...editingTimer, startTimeInput: e.target.value})} className="mt-1 w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20" /></label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="text-sm">{t('anniversary.displayMode', '显示方式')}<select value={editingTimer.displayMode || 'totalDays'} onChange={e => setEditingTimer({...editingTimer, displayMode: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20"><option value="totalDays">{t('anniversary.totalDays', '累计天数')}</option><option value="precise">{t('anniversary.preciseDuration', '年月日时分秒')}</option></select></label>
+                        <label className="text-sm">{t('anniversary.countRule', '计日规则')}<select value={editingTimer.countRule || 'elapsed'} onChange={e => setEditingTimer({...editingTimer, countRule: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20"><option value="elapsed">{t('anniversary.elapsed', '满 24 小时')}</option><option value="dateOnly">{t('anniversary.dateOnly', '按自然日')}</option><option value="inclusive">{t('anniversary.inclusive', '含开始日')}</option></select></label>
+                        <label className="text-sm">{t('anniversary.calendarType', '周年历法')}<select value={editingTimer.calendarType || 'solar'} onChange={e => setEditingTimer({...editingTimer, calendarType: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20"><option value="solar">{t('anniversary.solar', '公历')}</option><option value="lunar">{t('anniversary.lunar', '农历')}</option></select></label>
+                        <label className="text-sm">{t('overview.category', '标签')}<input value={editingTimer.category || ''} onChange={e => setEditingTimer({...editingTimer, category: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20" /></label>
+                      </div>
+                      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(editingTimer.isPinned)} onChange={e => setEditingTimer({...editingTimer, isPinned: e.target.checked})} />{t('overview.pin', '置顶')}</label>
+                      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(editingTimer.annualReminder)} onChange={e => setEditingTimer({...editingTimer, annualReminder: e.target.checked})} />{t('anniversary.annualReminder', '每年周年提醒')}</label>
+                      {editingTimer.annualReminder && <label className="block text-sm">{t('anniversary.remindBefore', '提前提醒')}<select value={editingTimer.reminderAdvanceDays || 0} onChange={e => setEditingTimer({...editingTimer, reminderAdvanceDays: Number(e.target.value)})} className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20"><option value="0">{t('anniversary.sameDay', '当天')}</option><option value="1">1 {t('time.days', '天')}</option><option value="3">3 {t('time.days', '天')}</option><option value="7">7 {t('time.days', '天')}</option></select></label>}
+                      <label className="block text-sm">{t('anniversary.milestoneAlerts', '累计天数提醒')}<input value={editingTimer.milestoneDaysText || ''} onChange={e => setEditingTimer({...editingTimer, milestoneDaysText: e.target.value})} className="mt-1 w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20" /></label>
+                    </div>
+                  )}
+
                   {/* 只有倒计时可以编辑日期和时间 */}
                   {!editingTimer.isLimitedEdit && (
                     <>
@@ -1143,10 +1205,22 @@ export default function Header() {
         )}
       </AnimatePresence>
 
-      {/* 添加正计时模态框 */}
+      {/* 添加秒表模态框 */}
+      <AnimatePresence>
+        {isAnniversaryModalOpen && (
+          <AddAnniversaryModal onClose={closeAllModals} />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {isStopwatchModalOpen && (
           <AddStopwatchModal onClose={closeAllModals} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isOverviewOpen && (
+          <TimerOverviewModal onClose={() => setIsOverviewOpen(false)} />
         )}
       </AnimatePresence>
 

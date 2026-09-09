@@ -5,11 +5,29 @@ import { getFromRemoteCache, saveToRemoteCache } from '../utils/syncService';
 import { scheduleCountdownNotification, cancelCountdownNotification } from '../utils/notifications';
 import { addNotification, removeNotification } from '../utils/notificationManager';
 import solarlunar from 'solarlunar';
+import { getNextAnniversaryReminder } from '../utils/anniversaryUtils';
 
 const TimerContext = createContext();
 
 // 获取当前年份
 const currentYear = new Date().getFullYear();
+
+const syncAnniversaryNotification = timer => {
+  const id = `${timer.id}-anniversary`;
+  removeNotification(id);
+  const reminder = getNextAnniversaryReminder(timer);
+  if (!reminder) return;
+  const isEnglish = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('lang') === 'en-US';
+  addNotification({
+    id,
+    title: timer.name,
+    targetTime: reminder.date.getTime(),
+    notificationTitle: isEnglish ? 'TimePulse anniversary reminder' : 'TimePulse 纪念日提醒',
+    notificationBody: reminder.kind === 'days'
+      ? (isEnglish ? `${timer.name} reaches ${reminder.days} days today.` : `${timer.name} 今天已走过 ${reminder.days} 天。`)
+      : (isEnglish ? `${timer.name} has an anniversary coming up.` : `${timer.name} 的周年纪念日快到了。`)
+  }).catch(error => console.log('设置纪念日提醒失败:', error));
+};
 
 // 添加计算清明节日期的辅助函数
 const getQingmingDate = (year) => {
@@ -229,6 +247,7 @@ export function TimerProvider({ children }) {
       setActiveTimerId(defaultTimer.id);
     } else {
       setTimers(loadedTimers);
+      loadedTimers.filter(timer => timer.type === 'anniversary').forEach(syncAnniversaryNotification);
       
       // 如果有保存的活动计时器ID，且该计时器存在，则使用它
       if (savedActiveTimerId && loadedTimers.some(timer => timer.id === savedActiveTimerId)) {
@@ -265,6 +284,7 @@ export function TimerProvider({ children }) {
             
             // 使用远程数据更新计时器
             setTimers(remoteData.timers);
+            remoteData.timers.filter(timer => timer.type === 'anniversary').forEach(syncAnniversaryNotification);
             
             // 如果远程数据有保存的activeTimerId且该计时器存在，则使用它
             if (remoteData.activeTimerId && remoteData.timers.some(timer => timer.id === remoteData.activeTimerId)) {
@@ -403,6 +423,11 @@ export function TimerProvider({ children }) {
       // 如果没有指定类型，默认为倒计时
       type: timerData.type || 'countdown'
     };
+    if (newTimer.type === 'anniversary') Object.assign(newTimer, {
+      displayMode: newTimer.displayMode || 'totalDays', countRule: newTimer.countRule || 'elapsed', calendarType: newTimer.calendarType || 'solar',
+      annualReminder: Boolean(newTimer.annualReminder), reminderAdvanceDays: Number(newTimer.reminderAdvanceDays || 0),
+      milestoneDays: newTimer.milestoneDays || [], milestones: newTimer.milestones || []
+    });
     
     setTimers(prev => {
       // 检查是否已存在相同ID的计时器
@@ -427,6 +452,7 @@ export function TimerProvider({ children }) {
         console.log('设置通知失败:', error);
       });
     }
+    if (newTimer.type === 'anniversary') syncAnniversaryNotification(newTimer);
     
     return newTimer.id;
   };
@@ -435,6 +461,7 @@ export function TimerProvider({ children }) {
   const deleteTimer = (id) => {
     // 取消该计时器的通知
     removeNotification(id);
+    removeNotification(`${id}-anniversary`);
     
     setTimers(prev => {
       const newTimers = prev.filter(timer => timer.id !== id);
@@ -459,9 +486,13 @@ export function TimerProvider({ children }) {
   // 更新计时器
   const updateTimer = (id, updatedData) => {
     setTimers(prev => {
-      const newTimers = prev.map(timer => 
-        timer.id === id ? { ...timer, ...updatedData } : timer
-      );
+      const newTimers = prev.map(timer => {
+        if (timer.id !== id) return timer;
+        const resolvedData = typeof updatedData === 'function'
+          ? updatedData(timer)
+          : updatedData;
+        return { ...timer, ...resolvedData };
+      });
       
       // 获取更新后的计时器对象
       const updatedTimer = newTimers.find(t => t.id === id);
@@ -476,6 +507,7 @@ export function TimerProvider({ children }) {
           console.log('更新通知失败:', error);
         });
       }
+      if (updatedTimer?.type === 'anniversary') syncAnniversaryNotification(updatedTimer);
       
       return newTimers;
     });

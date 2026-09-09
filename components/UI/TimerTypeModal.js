@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { FiX, FiClock, FiPlayCircle, FiGlobe } from 'react-icons/fi';
+import { FiX, FiClock, FiPlayCircle, FiGlobe, FiHeart } from 'react-icons/fi';
 import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from '../../hooks/useTranslation';
 
@@ -16,9 +16,16 @@ export default function TimerTypeModal({ onClose, onSelectType }) {
       color: '#FF4D4F',
     },
     {
+      id: 'anniversary',
+      name: t('timer.anniversary', '纪念日'),
+      description: t('timer.anniversaryDesc', '从重要日期开始，持续记录共同走过的时间'),
+      icon: FiHeart,
+      color: '#F43F5E',
+    },
+    {
       id: 'stopwatch',
-      name: t('timer.stopwatch', '正计时'),
-      description: t('timer.stopwatchDesc', '从零开始计时，记录经过时间'),
+      name: t('timer.stopwatch', '秒表'),
+      description: t('timer.stopwatchDesc', '可暂停、分段并精确记录经过时间'),
       icon: FiPlayCircle,
       color: '#52C41A',
     },

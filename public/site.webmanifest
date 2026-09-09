@@ -1,7 +1,7 @@
 {
   "name": "TimePulse",
   "short_name": "TimePulse",
-  "description": "现代化倒计时应用",
+  "description": "纪念日、倒计时、秒表与世界时间记录工具",
   "start_url": "/",
   "scope": "/",
   "background_color": "#000000",

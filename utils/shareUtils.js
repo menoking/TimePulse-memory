@@ -13,12 +13,22 @@ export function createShareUrl(timers) {
       name: timer.name,
       type: timer.type,
       color: timer.color,
+      customDescription: timer.customDescription || '',
     };
     
     // 根据计时器类型添加特定字段
-    if (timer.type === 'stopwatch') {
+    if (timer.type === 'anniversary') {
+      Object.assign(baseTimer, {
+        startTime: timer.startTime, displayMode: timer.displayMode, countRule: timer.countRule, calendarType: timer.calendarType,
+        category: timer.category, isPinned: timer.isPinned, annualReminder: timer.annualReminder,
+        reminderAdvanceDays: timer.reminderAdvanceDays, milestoneDays: timer.milestoneDays || [], milestones: timer.milestones || []
+      });
+    } else if (timer.type === 'stopwatch') {
       baseTimer.startTime = timer.startTime;
       baseTimer.isRunning = timer.isRunning;
+      baseTimer.pausedAt = timer.pausedAt || null;
+      baseTimer.totalPausedTime = timer.totalPausedTime || 0;
+      baseTimer.laps = timer.laps || [];
     } else if (timer.type === 'worldclock') {
       baseTimer.timezone = timer.timezone;
       baseTimer.city = timer.city;

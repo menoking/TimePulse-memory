@@ -39,7 +39,9 @@
   "timer": {
     "noActiveTimer": "No active timer",
     "countdown": "Countdown",
-    "stopwatch": "Stopwatch", 
+    "anniversary": "Anniversary",
+    "anniversaryDesc": "Keep time from a meaningful date",
+    "stopwatch": "Stopwatch",
     "worldClock": "World Clock",
     "running": "Running...",
     "paused": "Paused",
@@ -59,10 +61,14 @@
     "stopwatchCreated": "Stopwatch Created",
     "stopwatchStarted": "Stopwatch Started",
     "worldClockCreated": "World Clock Created",
-    "successfullyCreated": "Successfully Created"
+    "successfullyCreated": "Successfully Created",
+    "customDescription": "Custom message",
+    "customDescriptionPlaceholder": "For example: Every second moves me forward",
+    "customDescriptionHint": "When set, this replaces the default status below the timer"
   },
   "time": {
     "years": "Years",
+    "months": "Months",
     "days": "Days",
     "hours": "Hours",
     "minutes": "Minutes",
@@ -103,7 +109,10 @@
       "timerName": "Timer Name",
       "namePlaceholder": "e.g. Study Time",
       "description": "Stopwatch Description",
-      "descriptionText": "The stopwatch will count elapsed time from zero. It will start immediately after creation. You can pause and resume at any time.",
+      "descriptionText": "The stopwatch counts from the selected date and displays years, months, days, hours, minutes, and seconds. You can pause and resume at any time.",
+      "startDate": "Start date and time",
+      "startDateHint": "Choose a specific past date to start accumulating time",
+      "startDateError": "The start date cannot be later than now",
       "color": "Color",
       "selectColor": "Select Color",
       "createAndStart": "Create and Start"
@@ -234,7 +243,14 @@
     "lapInterval": "Interval",
     "totalTime": "Total",
     "noLaps": "No lap records",
-    "clear": "Clear Records"
+    "clear": "Clear Records",
+    "labelPlaceholder": "Add a label to this lap",
+    "delete": "Delete this lap"
+  },
+  "stopConfirm": {
+    "title": "Stop and reset?",
+    "description": "Stopping resets the timer and removes every lap record.",
+    "slide": "Slide right to confirm reset"
   },
   "country": {
     "中国": "China",
@@ -340,6 +356,14 @@
     "Africa_Nairobi": "Nairobi",
     "Africa_Casablanca": "Casablanca"
   },
+  "anniversary": {
+    "create": "Create anniversary", "name": "Name", "namePlaceholder": "For example: The day we met", "nameRequired": "Enter a name", "pastRequired": "The start time must be valid and not in the future",
+    "startTime": "Start date and time", "displayMode": "Display", "totalDays": "Total days", "calendar": "Calendar", "precise": "Full duration", "calendarDuration": "Years, months and days", "preciseDuration": "Years to seconds",
+    "countRule": "Counting rule", "elapsed": "Every full 24 hours", "dateOnly": "Calendar days", "inclusive": "Include start day", "calendarType": "Anniversary calendar", "solar": "Gregorian", "lunar": "Lunar",
+    "annualReminder": "Annual reminder", "remindBefore": "Remind before", "sameDay": "Same day", "milestoneAlerts": "Day milestones", "since": "Since", "daysTogether": "days together", "nextIn": "Anniversary in {{days}} days"
+  },
+  "milestone": { "title": "Life milestones", "name": "Milestone name", "note": "Note (optional)", "add": "Add milestone", "invalid": "Enter a name and choose a date between the start and today", "dayNumber": "Day {{days}}", "empty": "Record the moments worth remembering" },
+  "overview": { "title": "Time overview", "subtitle": "Keep meaningful dates visible at a glance", "category": "Tag", "categoryPlaceholder": "Love, growth, family", "pin": "Pin", "pinOnCreate": "Pin after creating", "sortBy": "Sort by", "filterByTag": "Filter by tag", "sortPinned": "Pinned first", "sortUpcoming": "Next anniversary", "sortName": "By name", "allCategories": "All tags", "resultCount": "{{count}} items", "emptyFiltered": "No timers use this tag yet", "showAll": "Show all" },
   "notification": {
     "title": "Enable Notifications?",
     "description": "When enabled, you'll receive notification reminders when countdowns end and the webpage is open.",

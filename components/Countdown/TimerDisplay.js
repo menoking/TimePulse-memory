@@ -1,27 +1,37 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { intervalToDuration } from 'date-fns';
 import { useTimers } from '../../context/TimerContext';
 import { useFullscreen } from '../../context/FullscreenContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import DigitColumn from './DigitColumn';
 import { addNotification } from '../../utils/notificationManager';
 import { track, bucketDurationMs } from '../../utils/analytics';
-import { FiPlay, FiPause, FiSquare, FiFlag, FiList } from 'react-icons/fi';
+import { FiActivity, FiMessageCircle, FiPlay, FiPause, FiSquare, FiFlag, FiList, FiCalendar } from 'react-icons/fi';
 import LapTimesModal from '../UI/LapTimesModal';
+import StopwatchStopConfirmModal from '../UI/StopwatchStopConfirmModal';
+import MilestonesModal from '../UI/MilestonesModal';
+import { getAnniversaryDuration, getAnniversaryTotalDays, getDaysUntil, getNextAnniversary } from '../../utils/anniversaryUtils';
+
+const EMPTY_TIME_VALUE = { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
 
 export default function TimerDisplay() {
   const { getActiveTimer, updateTimer, checkAndUpdateDefaultTimer } = useTimers();
   const { isFullscreen, timerFontSize, labelFontSize } = useFullscreen();
   const { t, currentLang } = useTranslation();
-  const [timeValue, setTimeValue] = useState({ years: 0, days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [timeValue, setTimeValue] = useState(EMPTY_TIME_VALUE);
   const [showDays, setShowDays] = useState(true);
   const [showYears, setShowYears] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isLapModalOpen, setIsLapModalOpen] = useState(false);
+  const [isStopConfirmOpen, setIsStopConfirmOpen] = useState(false);
+  const [isMilestonesOpen, setIsMilestonesOpen] = useState(false);
+  const [totalDays, setTotalDays] = useState(0);
+  const [nextAnniversary, setNextAnniversary] = useState(null);
   
   // 使用 ref 跟踪最后计算的时间，避免不必要的重渲染
-  const lastTimeRef = useRef({ years: 0, days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const lastTimeRef = useRef(EMPTY_TIME_VALUE);
   const timerIdRef = useRef(null);
   const syncTimerRef = useRef(null); // 高频同步定时器
   const startTimeRef = useRef(null);
@@ -31,6 +41,7 @@ export default function TimerDisplay() {
   // 判断两个时间对象是否相等
   const areTimesEqual = (time1, time2) => {
     return time1.years === time2.years &&
+           time1.months === time2.months &&
            time1.days === time2.days && 
            time1.hours === time2.hours && 
            time1.minutes === time2.minutes && 
@@ -52,44 +63,12 @@ export default function TimerDisplay() {
       return;
     }
     
-    // 获取当前秒数作为基准
-    const now = new Date();
-    lastSecondRef.current = now.getSeconds();
-    
-    // 启动高频检测（每毫秒检测一次）
-    syncTimerRef.current = setInterval(() => {
-      // 检查页面可见性
-      if (document.visibilityState !== 'visible') {
-        clearInterval(syncTimerRef.current);
-        clearInterval(timerIdRef.current);
-        return;
-      }
-      
-      const currentTime = new Date();
-      const currentSecond = currentTime.getSeconds();
-      
-      // 检测秒数是否发生变化
-      if (currentSecond !== lastSecondRef.current) {
-        lastSecondRef.current = currentSecond;
-        
-        // 清除高频检测，因为我们已经同步到秒数变化了
-        clearInterval(syncTimerRef.current);
-        
-        // 秒数变化时立即执行一次主进程
-        const timer = getActiveTimer();
-        if (timer) {
-          calculateTime(timer);
-        }
-        
-        // 设置循环间隔1000ms运行主进程
-        timerIdRef.current = setInterval(() => {
-          const activeTimer = getActiveTimer();
-          if (activeTimer && document.visibilityState === 'visible') {
-            calculateTime(activeTimer);
-          }
-        }, 1000);
-      }
-    }, 1);
+    const tick = () => {
+      const timer = getActiveTimer();
+      if (timer && document.visibilityState === 'visible') calculateTime(timer);
+      timerIdRef.current = setTimeout(tick, 1000 - (Date.now() % 1000) + 8);
+    };
+    syncTimerRef.current = setTimeout(tick, 1000 - (Date.now() % 1000) + 8);
   };
   
   // 统一的计时计算函数
@@ -103,6 +82,9 @@ export default function TimerDisplay() {
       case 'stopwatch':
         calculateStopwatchTime(timer);
         break;
+      case 'anniversary':
+        calculateAnniversaryTime(timer);
+        break;
       case 'worldclock':
         calculateWorldClockTime(timer);
         break;
@@ -111,10 +93,21 @@ export default function TimerDisplay() {
         break;
     }
   };
+
+  const calculateAnniversaryTime = (timer) => {
+    const now = new Date();
+    const duration = getAnniversaryDuration(timer.startTime, now, timer.countRule || 'elapsed');
+    const next = getNextAnniversary(timer.startTime, now, timer.calendarType || 'solar');
+    const value = { years: duration.years || 0, months: duration.months || 0, days: duration.days || 0, hours: duration.hours || 0, minutes: duration.minutes || 0, seconds: duration.seconds || 0 };
+    if (!areTimesEqual(value, lastTimeRef.current)) { setTimeValue(value); lastTimeRef.current = value; }
+    setTotalDays(current => { const nextValue = getAnniversaryTotalDays(timer.startTime, now, timer.countRule || 'elapsed'); return current === nextValue ? current : nextValue; });
+    setNextAnniversary(current => current && current.getTime() === next.getTime() ? current : next);
+  };
   
   // 判断是否只有秒数变化（避免分钟数字不必要的重新渲染）
   const isOnlySecondsChanged = (time1, time2) => {
     return time1.years === time2.years &&
+           time1.months === time2.months &&
            time1.days === time2.days && 
            time1.hours === time2.hours && 
            time1.minutes === time2.minutes && 
@@ -131,8 +124,8 @@ export default function TimerDisplay() {
       // 倒计时结束
       if (!isFinished) {
         setIsFinished(true);
-        setTimeValue({ years: 0, days: 0, hours: 0, minutes: 0, seconds: 0 });
-        lastTimeRef.current = { years: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
+        setTimeValue(EMPTY_TIME_VALUE);
+        lastTimeRef.current = EMPTY_TIME_VALUE;
 
         try {
           const createdAt = timer.createdAt ? new Date(timer.createdAt).getTime() : null;
@@ -177,7 +170,7 @@ export default function TimerDisplay() {
     const minutes = Math.floor((difference / 1000 / 60) % 60);
     const seconds = Math.floor((difference / 1000) % 60);
     
-    const newTimeLeft = { years, days, hours, minutes, seconds };
+    const newTimeLeft = { years, months: 0, days, hours, minutes, seconds };
     
     // 只有当时间真正变化时才更新状态
     if (!areTimesEqual(newTimeLeft, lastTimeRef.current)) {
@@ -188,50 +181,48 @@ export default function TimerDisplay() {
     }
   };
   
-  // 计算正计时经过时间
+  // 计算秒表经过时间
   const calculateStopwatchTime = (timer) => {
     const now = new Date();
     const startTime = new Date(timer.startTime);
-    let elapsedMs = 0;
+    let endTime = startTime;
     
     if (timer.isRunning) {
       // 正在运行中
-      elapsedMs = now - startTime - (timer.totalPausedTime || 0);
+      endTime = now;
     } else if (timer.pausedAt) {
       // 已暂停，显示暂停时的时间
-      const pausedAt = new Date(timer.pausedAt);
-      elapsedMs = pausedAt - startTime - (timer.totalPausedTime || 0);
-    } else {
-      // 初始状态或已重置
-      elapsedMs = 0;
+      endTime = new Date(timer.pausedAt);
     }
-    
-    elapsedMs = Math.max(0, elapsedMs); // 确保不为负数
-    
-    const totalSeconds = Math.floor(elapsedMs / 1000);
-    const totalDays = Math.floor(totalSeconds / (24 * 60 * 60));
-    const years = Math.floor(totalDays / 365);
-    const days = totalDays % 365;
-    const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
-    const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
-    const seconds = totalSeconds % 60;
-    
-    const newTimeValue = { years, days, hours, minutes, seconds };
+
+    const effectiveStart = new Date(startTime.getTime() + (timer.totalPausedTime || 0));
+    const hasValidRange = !Number.isNaN(effectiveStart.getTime()) && endTime >= effectiveStart;
+    const duration = hasValidRange
+      ? intervalToDuration({ start: effectiveStart, end: endTime })
+      : EMPTY_TIME_VALUE;
+    const newTimeValue = {
+      years: duration.years || 0,
+      months: duration.months || 0,
+      days: duration.days || 0,
+      hours: duration.hours || 0,
+      minutes: duration.minutes || 0,
+      seconds: duration.seconds || 0
+    };
     
     // 智能更新：只有当时间确实变化时才更新状态
-    // 对于正计时，我们特别处理避免不必要的重新渲染
+    // 秒表仅在数值发生变化时更新
     if (!areTimesEqual(newTimeValue, lastTimeRef.current)) {
       // 如果只是秒数变化，我们延迟更新其他数字避免闪烁
       if (timer.type === 'stopwatch' && isOnlySecondsChanged(newTimeValue, lastTimeRef.current)) {
         // 只更新秒数
-        setTimeValue(prev => ({ ...prev, seconds }));
+        setTimeValue(prev => ({ ...prev, seconds: newTimeValue.seconds }));
       } else {
         // 全部更新
         setTimeValue(newTimeValue);
       }
       lastTimeRef.current = newTimeValue;
-      setShowYears(years > 0);
-      setShowDays(days > 0 || years > 0); // 当有年份或天数大于0时显示天数
+      setShowYears(newTimeValue.years > 0);
+      setShowDays(newTimeValue.days > 0 || newTimeValue.months > 0 || newTimeValue.years > 0);
     }
   };
   
@@ -246,6 +237,7 @@ export default function TimerDisplay() {
     
     const newTimeValue = { 
       years: 0,
+      months: 0,
       days: 0, 
       hours: hours, 
       minutes: minutes, 
@@ -308,7 +300,7 @@ export default function TimerDisplay() {
     };
   }, [getActiveTimer, isFinished, checkAndUpdateDefaultTimer, isRunning]);
   
-  // 正计时控制函数
+  // 秒表控制函数
   const handleStopwatchControl = (action) => {
     const timer = getActiveTimer();
     if (!timer || timer.type !== 'stopwatch') return;
@@ -357,8 +349,8 @@ export default function TimerDisplay() {
           laps: [] // 清空分段记录
         });
         setIsRunning(false);
-        setTimeValue({ years: 0, days: 0, hours: 0, minutes: 0, seconds: 0 });
-        lastTimeRef.current = { years: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
+        setTimeValue(EMPTY_TIME_VALUE);
+        lastTimeRef.current = EMPTY_TIME_VALUE;
         track('stopwatch_stop');
         break;
 
@@ -371,7 +363,8 @@ export default function TimerDisplay() {
         const newLap = {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           timestamp: now.toISOString(),
-          elapsedMs: elapsedMs
+          elapsedMs: elapsedMs,
+          label: ''
         };
         updateTimer(timer.id, {
           laps: [...laps, newLap]
@@ -379,6 +372,24 @@ export default function TimerDisplay() {
         track('stopwatch_lap', { lap_count: laps.length + 1 });
         break;
     }
+  };
+
+  const handleRenameLap = (lapId, label) => {
+    const timer = getActiveTimer();
+    if (!timer || timer.type !== 'stopwatch') return;
+    updateTimer(timer.id, (latestTimer) => ({
+      laps: (latestTimer.laps || []).map((lap) => lap.id === lapId ? { ...lap, label } : lap)
+    }));
+    track('stopwatch_lap_rename');
+  };
+
+  const handleDeleteLap = (lapId) => {
+    const timer = getActiveTimer();
+    if (!timer || timer.type !== 'stopwatch') return;
+    updateTimer(timer.id, (latestTimer) => ({
+      laps: (latestTimer.laps || []).filter((lap) => lap.id !== lapId)
+    }));
+    track('stopwatch_lap_delete');
   };
   
   // 格式化为两位数
@@ -417,10 +428,16 @@ export default function TimerDisplay() {
 
   const timerClasses = getTimerFontSizeClasses();
   const labelClasses = getLabelFontSizeClasses();
+  const visibleStopwatchUnits = ['years', 'months', 'days', 'hours', 'minutes', 'seconds']
+    .filter((unit) => timeValue[unit] > 0);
+  const anniversaryUnits = ['years', 'months', 'days', 'hours', 'minutes', 'seconds'];
+  const firstAnniversaryValue = anniversaryUnits.findIndex(unit => timeValue[unit] > 0);
+  const visibleAnniversaryUnits = firstAnniversaryValue < 0 ? ['seconds'] : anniversaryUnits.slice(firstAnniversaryValue);
+  const anniversaryDisplayMode = activeTimer?.displayMode === 'totalDays' ? 'totalDays' : 'precise';
 
   if (!activeTimer) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[100dvh]">
         <p className="text-xl text-gray-400">{t('timer.noActiveTimer')}</p>
       </div>
     );
@@ -430,6 +447,8 @@ export default function TimerDisplay() {
   const getTimerTitle = () => {
     switch (activeTimer.type) {
       case 'stopwatch':
+        return activeTimer.name;
+      case 'anniversary':
         return activeTimer.name;
       case 'worldclock':
         return activeTimer.name; // 直接使用用户设置的名称
@@ -441,7 +460,9 @@ export default function TimerDisplay() {
   const getTimerDescription = () => {
     switch (activeTimer.type) {
       case 'stopwatch':
-        return isRunning ? t('timer.running') : t('timer.paused');
+        return isRunning ? (activeTimer.customDescription?.trim() || t('timer.running')) : t('timer.paused');
+      case 'anniversary':
+        return activeTimer.customDescription?.trim() || t('timer.running');
       case 'worldclock':
         return `${activeTimer.country} - ${activeTimer.timezone}`;
       default:
@@ -472,86 +493,122 @@ export default function TimerDisplay() {
       </motion.h2>
       
       {/* 时间显示 */}
-      <motion.div 
-        className={`flex items-center justify-center ${showYears ? 'flex-col sm:flex-row gap-2 sm:gap-0' : 'flex-row'} space-x-0 sm:space-x-4`}
+      <motion.div
+        className={activeTimer.type === 'stopwatch' || activeTimer.type === 'anniversary'
+          ? 'flex flex-wrap gap-3 sm:gap-4 items-start justify-center max-w-6xl'
+          : `flex items-center justify-center ${showYears ? 'flex-col sm:flex-row gap-2 sm:gap-0' : 'flex-row'} space-x-0 sm:space-x-4`
+        }
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        {/* 第一行：年数和天数 - 仅在需要时显示 */}
-        {showYears && (
-          <div className="flex items-center justify-center space-x-2 sm:space-x-4">
-            <DigitColumn
-              value={formatNumber(timeValue.years)}
-              label={t('time.years')}
-              color={activeTimer.color || '#0ea5e9'}
-              fontSize={timerFontSize}
-              labelFontSize={labelFontSize}
-            />
-            <span className={`${timerClasses[timerFontSize]} font-thin text-gray-400`}>:</span>
-            {showDays && (
-              <>
+        {activeTimer.type === 'anniversary' ? (
+          activeTimer.displayMode === 'totalDays' ? (
+            <div className="glass-card rounded-[2rem] px-10 py-7 sm:px-16 sm:py-9 min-w-[240px]">
+              <div className="text-6xl sm:text-8xl font-semibold tracking-tight" style={{ color: activeTimer.color }}>{totalDays}</div>
+              <div className="mt-2 text-sm text-gray-500">{t('anniversary.daysTogether', '已走过的天数')}</div>
+            </div>
+          ) : (
+            <AnimatePresence mode="popLayout">{visibleAnniversaryUnits.map(unit => <motion.div layout key={unit} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><DigitColumn value={formatNumber(timeValue[unit])} label={t(`time.${unit}`)} color={activeTimer.color || '#f43f5e'} fontSize={isFullscreen ? timerFontSize : 'small'} labelFontSize={labelFontSize} /></motion.div>)}</AnimatePresence>
+          )
+        ) : activeTimer.type === 'stopwatch' ? (
+          <AnimatePresence mode="popLayout">
+            {visibleStopwatchUnits.map((unit) => (
+              <motion.div
+                key={unit}
+                layout
+                initial={{ opacity: 0, y: 18, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -12, scale: 0.9 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+              >
                 <DigitColumn
-                  value={formatNumber(timeValue.days)}
-                  label={t('time.days')}
+                  value={formatNumber(timeValue[unit])}
+                  label={t(`time.${unit}`)}
+                  color={activeTimer.color || '#0ea5e9'}
+                  fontSize={isFullscreen ? timerFontSize : 'small'}
+                  labelFontSize={labelFontSize}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        ) : (
+          <>
+            {showYears && (
+              <div className="flex items-center justify-center space-x-2 sm:space-x-4">
+                <DigitColumn
+                  value={formatNumber(timeValue.years)}
+                  label={t('time.years')}
                   color={activeTimer.color || '#0ea5e9'}
                   fontSize={timerFontSize}
                   labelFontSize={labelFontSize}
                 />
-                <span className="text-4xl sm:text-5xl md:text-6xl font-thin text-gray-400 hidden sm:inline">:</span>
-              </>
+                <span className={`${timerClasses[timerFontSize]} font-thin text-gray-400`}>:</span>
+                {showDays && (
+                  <>
+                    <DigitColumn
+                      value={formatNumber(timeValue.days)}
+                      label={t('time.days')}
+                      color={activeTimer.color || '#0ea5e9'}
+                      fontSize={timerFontSize}
+                      labelFontSize={labelFontSize}
+                    />
+                    <span className="text-4xl sm:text-5xl md:text-6xl font-thin text-gray-400 hidden sm:inline">:</span>
+                  </>
+                )}
+              </div>
             )}
-          </div>
-        )}
-        
-        {/* 第二行：天数（当没有年数时）、小时、分钟、秒 */}
-        <div className="flex items-center justify-center space-x-2 sm:space-x-4">
-          {/* 天数 - 仅在没有年数且需要时显示 */}
-          {!showYears && showDays && (
-            <>
+
+            <div className="flex items-center justify-center space-x-2 sm:space-x-4">
+              {!showYears && showDays && (
+                <>
+                  <DigitColumn
+                    value={formatNumber(timeValue.days)}
+                    label={t('time.days')}
+                    color={activeTimer.color || '#0ea5e9'}
+                    fontSize={timerFontSize}
+                    labelFontSize={labelFontSize}
+                  />
+                  <span className={`${timerClasses[timerFontSize]} font-thin text-gray-400`}>:</span>
+                </>
+              )}
               <DigitColumn
-                value={formatNumber(timeValue.days)}
-                label={t('time.days')}
+                value={formatNumber(timeValue.hours)}
+                label={t('time.hours')}
                 color={activeTimer.color || '#0ea5e9'}
                 fontSize={timerFontSize}
                 labelFontSize={labelFontSize}
               />
-              <span className={`${timerClasses[timerFontSize]} font-thin text-gray-400`}>:</span>
-            </>
-          )}
-          
-          {/* 小时 */}
-          <DigitColumn
-            value={formatNumber(timeValue.hours)}
-            label={t('time.hours')}
-            color={activeTimer.color || '#0ea5e9'}
-            fontSize={timerFontSize}
-            labelFontSize={labelFontSize}
-          />
-          <span className="text-4xl sm:text-5xl md:text-6xl font-thin text-gray-400">:</span>
-          
-          {/* 分钟 */}
-          <DigitColumn
-            value={formatNumber(timeValue.minutes)}
-            label={t('time.minutes')}
-            color={activeTimer.color || '#0ea5e9'}
-            fontSize={timerFontSize}
-            labelFontSize={labelFontSize}
-          />
-          <span className="text-4xl sm:text-5xl md:text-6xl font-thin text-gray-400">:</span>
-          
-          {/* 秒 */}
-          <DigitColumn
-            value={formatNumber(timeValue.seconds)}
-            label={t('time.seconds')}
-            color={activeTimer.color || '#0ea5e9'}
-            fontSize={timerFontSize}
-            labelFontSize={labelFontSize}
-          />
-        </div>
+              <span className="text-4xl sm:text-5xl md:text-6xl font-thin text-gray-400">:</span>
+              <DigitColumn
+                value={formatNumber(timeValue.minutes)}
+                label={t('time.minutes')}
+                color={activeTimer.color || '#0ea5e9'}
+                fontSize={timerFontSize}
+                labelFontSize={labelFontSize}
+              />
+              <span className="text-4xl sm:text-5xl md:text-6xl font-thin text-gray-400">:</span>
+              <DigitColumn
+                value={formatNumber(timeValue.seconds)}
+                label={t('time.seconds')}
+                color={activeTimer.color || '#0ea5e9'}
+                fontSize={timerFontSize}
+                labelFontSize={labelFontSize}
+              />
+            </div>
+          </>
+        )}
       </motion.div>
+
+      {activeTimer.type === 'anniversary' && (
+        <div className="mt-6 flex flex-col items-center gap-4">
+          <div className="glass-card rounded-full p-1 flex flex-wrap justify-center gap-1">{['totalDays', 'precise'].map(mode => <button key={mode} onClick={() => updateTimer(activeTimer.id, { displayMode: mode })} className={`px-4 py-2 rounded-full text-sm transition-colors ${anniversaryDisplayMode === mode ? 'text-white' : 'text-gray-500 hover:text-gray-800 dark:hover:text-white'}`} style={anniversaryDisplayMode === mode ? { backgroundColor: activeTimer.color } : {}}>{t(`anniversary.${mode}`, { totalDays: '累计天数', precise: '年月日时分秒' }[mode])}</button>)}</div>
+          <button className="glass-card px-5 py-2.5 rounded-full flex items-center gap-2" style={{ color: activeTimer.color }} onClick={() => setIsMilestonesOpen(true)}><FiCalendar />{t('milestone.title', '人生里程碑')}</button>
+          {nextAnniversary && <p className="text-sm text-gray-500">{t('anniversary.nextIn', '{{days}} 天后周年').replace('{{days}}', getDaysUntil(nextAnniversary))}</p>}
+        </div>
+      )}
       
-      {/* 正计时控制按钮 */}
+      {/* 秒表控制按钮 */}
       {activeTimer.type === 'stopwatch' && (
         <motion.div 
           className="mt-8 flex space-x-4 relative"
@@ -591,7 +648,7 @@ export default function TimerDisplay() {
             <FiFlag className="text-xl pointer-events-none" />
           </button>
           <button
-            onClick={() => handleStopwatchControl('stop')}
+            onClick={() => setIsStopConfirmOpen(true)}
             className="glass-card p-4 rounded-full hover:bg-white/10 dark:hover:bg-black/10 transition-colors cursor-pointer select-none"
             style={{ 
               color: activeTimer.color,
@@ -608,6 +665,10 @@ export default function TimerDisplay() {
       
       {/* 倒计时结束提示 */}
       <AnimatePresence>
+        {isMilestonesOpen && activeTimer.type === 'anniversary' && <MilestonesModal timer={activeTimer} onClose={() => setIsMilestonesOpen(false)} onChange={milestones => updateTimer(activeTimer.id, { milestones })} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {isFinished && activeTimer.type === 'countdown' && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -623,14 +684,24 @@ export default function TimerDisplay() {
       </AnimatePresence>
       
       {/* 描述信息 */}
-      <motion.p 
-        className="mt-6 text-sm text-gray-500 dark:text-gray-400"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-      >
-        {getTimerDescription()}
-      </motion.p>
+      {activeTimer.type === 'stopwatch' || activeTimer.type === 'anniversary' ? (
+        <motion.div
+          className="mt-6 max-w-xl"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <div className="glass-card flex items-center gap-3 rounded-2xl border border-white/15 px-4 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20 dark:bg-white/10" style={{ color: activeTimer.color }}>
+              {activeTimer.type === 'stopwatch' && !isRunning ? <FiPause /> : activeTimer.customDescription?.trim() ? <FiMessageCircle /> : <FiActivity />}
+            </span>
+            <p className="text-sm font-medium leading-relaxed text-gray-700 dark:text-gray-200">{getTimerDescription()}</p>
+          </div>
+          {activeTimer.type === 'anniversary' && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{t('anniversary.since', '始于')} {new Date(activeTimer.startTime).toLocaleString()}</p>}
+        </motion.div>
+      ) : (
+        <motion.p className="mt-6 text-sm text-gray-500 dark:text-gray-400" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>{getTimerDescription()}</motion.p>
+      )}
       
       {/* 分段计时按钮 */}
       {activeTimer.type === 'stopwatch' && activeTimer.laps && activeTimer.laps.length > 0 && (
@@ -661,6 +732,22 @@ export default function TimerDisplay() {
           <LapTimesModal 
             onClose={() => setIsLapModalOpen(false)}
             laps={activeTimer.laps || []}
+            timerColor={activeTimer.color}
+            onRenameLap={handleRenameLap}
+            onDeleteLap={handleDeleteLap}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isStopConfirmOpen && activeTimer.type === 'stopwatch' && (
+          <StopwatchStopConfirmModal
+            onClose={() => setIsStopConfirmOpen(false)}
+            onConfirm={() => {
+              setIsStopConfirmOpen(false);
+              setIsLapModalOpen(false);
+              handleStopwatchControl('stop');
+            }}
             timerColor={activeTimer.color}
           />
         )}

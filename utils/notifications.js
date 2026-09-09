@@ -231,13 +231,8 @@ export async function scheduleCountdownNotification(countdown, skipPermissionChe
   }
 
   // 获取本地化的通知消息
-  const notificationTitle = await getLocalizedNotificationMessage(
-    'notification.messages.countdownEnded'
-  );
-  const notificationBody = await getLocalizedNotificationMessage(
-    'notification.messages.countdownEndedBody',
-    { title: countdown.title }
-  );
+  const notificationTitle = countdown.notificationTitle || await getLocalizedNotificationMessage('notification.messages.countdownEnded');
+  const notificationBody = countdown.notificationBody || await getLocalizedNotificationMessage('notification.messages.countdownEndedBody', { title: countdown.title });
 
   // 创建通知数据
   const notificationData = {

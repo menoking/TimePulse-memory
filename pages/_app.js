@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { MotionConfig } from 'framer-motion';
 import '../styles/globals.css';
 import { TimerProvider } from '../context/TimerContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { BackgroundProvider } from '../context/BackgroundContext';
 import { FullscreenProvider } from '../context/FullscreenContext';
 import { getFromRemoteCache } from '../utils/syncService';
-import ScrollProgress from '../components/UI/ScrollProgress';
-import ScrollHandle from '../components/UI/ScrollHandle';
 import OfflineNotification from '../components/UI/OfflineNotification';
 import GlobalNotificationManager from '../components/UI/GlobalNotificationManager';
 import { testNotification } from '../utils/notifications';
@@ -86,16 +85,16 @@ function MyApp({ Component, pageProps }) {
         <FullscreenProvider>
           <TimerProvider>
             <Head>
-              <title>TimePulse - 现代化倒计时</title>
-              <meta name="description" content="TimePulse - 一个现代化的倒计时网页应用" />
+              <title>TimePulse - 纪念日与时间记录</title>
+              <meta name="description" content="记录纪念日、倒计时、秒表与世界时间" />
               <link rel="icon" href="/favicon.ico" />
               <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
             </Head>
-            <OfflineNotification /> {/* 保留此组件用于监听离线状态 */}
-            <GlobalNotificationManager />
-            <ScrollProgress />
-            <ScrollHandle />
-            <Component {...pageProps} />
+            <MotionConfig reducedMotion="user">
+              <OfflineNotification />
+              <GlobalNotificationManager />
+              <Component {...pageProps} />
+            </MotionConfig>
           </TimerProvider>
         </FullscreenProvider>
       </BackgroundProvider>

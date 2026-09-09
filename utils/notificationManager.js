@@ -113,7 +113,9 @@ class NotificationManager {
         this.activeNotifications.set(countdown.id, {
           id: countdown.id,
           title: countdown.title,
-          targetTime: countdown.targetTime
+          targetTime: countdown.targetTime,
+          notificationTitle: countdown.notificationTitle,
+          notificationBody: countdown.notificationBody
         });
         
         console.log(`Notification added and tracked: ${countdown.title}`);

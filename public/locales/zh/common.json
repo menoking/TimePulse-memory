@@ -39,7 +39,9 @@
   "timer": {
     "noActiveTimer": "没有活动的计时器",
     "countdown": "倒计时",
-    "stopwatch": "正计时器",
+    "anniversary": "纪念日",
+    "anniversaryDesc": "从重要日期开始，持续记录共同走过的时间",
+    "stopwatch": "秒表",
     "worldClock": "世界时间",
     "running": "正在计时中...",
     "paused": "已暂停",
@@ -53,16 +55,20 @@
     "manageTimer": "管理计时器",
     "selectType": "选择计时器类型",
     "countdownDesc": "设置目标时间，倒数到零",
-    "stopwatchDesc": "从零开始计时，记录经过时间",
+    "stopwatchDesc": "可暂停、分段并精确记录经过时间",
     "worldClockDesc": "显示不同时区的当前时间",
     "time": "时间",
-    "stopwatchCreated": "正计时已创建",
-    "stopwatchStarted": "正计时已开始运行",
+    "stopwatchCreated": "秒表已创建",
+    "stopwatchStarted": "秒表已开始运行",
     "worldClockCreated": "世界时钟已创建",
-    "successfullyCreated": "已成功创建"
+    "successfullyCreated": "已成功创建",
+    "customDescription": "自定义句子",
+    "customDescriptionPlaceholder": "例如：每一秒，都在靠近更好的自己",
+    "customDescriptionHint": "填写后将替代计时器底部的默认状态文案"
   },
   "time": {
     "years": "年",
+    "months": "月",
     "days": "天",
     "hours": "时",
     "minutes": "分",
@@ -97,13 +103,16 @@
       "createdDesc": "您的倒计时已成功创建"
     },
     "addStopwatch": {
-      "title": "添加正计时",
-      "create": "创建正计时",
+      "title": "添加秒表",
+      "create": "创建秒表",
       "name": "名称",
       "timerName": "计时器名称",
       "namePlaceholder": "例如: 学习时间",
-      "description": "正计时说明",
-      "descriptionText": "正计时将从零开始计算经过的时间，创建后会立即开始计时。您可以随时暂停和恢复计时。",
+      "description": "秒表说明",
+      "descriptionText": "秒表从零开始，适合需要暂停、恢复和分段记录的短时计时。",
+      "startDate": "开始日期与时间",
+      "startDateHint": "可从过去的特定日期开始累计时长",
+      "startDateError": "开始日期不能晚于当前时间",
       "color": "颜色",
       "selectColor": "选择颜色",
       "createAndStart": "创建并开始"
@@ -234,7 +243,14 @@
     "lapInterval": "间隔",
     "totalTime": "累计",
     "noLaps": "暂无分段记录",
-    "clear": "清空记录"
+    "clear": "清空记录",
+    "labelPlaceholder": "为此分段添加标签",
+    "delete": "删除此分段"
+  },
+  "stopConfirm": {
+    "title": "确认停止并清零？",
+    "description": "停止后计时将归零，全部分段记录也会被清除。",
+    "slide": "向右滑动以确认清零"
   },
   "country": {
     "中国": "中国",
@@ -340,6 +356,14 @@
     "Africa_Nairobi": "内罗毕",
     "Africa_Casablanca": "卡萨布兰卡"
   },
+  "anniversary": {
+    "create": "创建纪念日", "name": "名称", "namePlaceholder": "例如：我们相识", "nameRequired": "请输入纪念日名称", "pastRequired": "开始时间必须有效且不能晚于现在",
+    "startTime": "开始日期与时间", "displayMode": "显示方式", "totalDays": "累计天数", "calendar": "年月日", "precise": "年月日时分秒", "calendarDuration": "年月日", "preciseDuration": "年月日时分秒",
+    "countRule": "计日规则", "elapsed": "满 24 小时计一天", "dateOnly": "按自然日", "inclusive": "含开始日", "calendarType": "周年历法", "solar": "公历", "lunar": "农历",
+    "annualReminder": "每年周年提醒", "remindBefore": "提前提醒", "sameDay": "当天", "milestoneAlerts": "累计天数提醒", "since": "始于", "daysTogether": "已走过的天数", "nextIn": "{{days}} 天后周年"
+  },
+  "milestone": { "title": "人生里程碑", "name": "里程碑名称", "note": "备注（可选）", "add": "添加里程碑", "invalid": "请填写名称，并选择开始日至今天之间的日期", "dayNumber": "第 {{days}} 天", "empty": "记录那些真正值得记住的节点" },
+  "overview": { "title": "时间总览", "subtitle": "把重要时间放在一眼可见的地方", "category": "标签", "categoryPlaceholder": "感情、成长、家庭", "pin": "置顶", "pinOnCreate": "创建后置顶", "sortBy": "排序方式", "filterByTag": "标签筛选", "sortPinned": "置顶优先", "sortUpcoming": "最近周年", "sortName": "按名称", "allCategories": "全部标签", "resultCount": "共 {{count}} 项", "emptyFiltered": "这个标签下还没有计时器", "showAll": "查看全部" },
   "notification": {
     "title": "是否开启通知功能？",
     "description": "开启后，当倒计时结束，且网页打开时，将会发送通知提醒。",

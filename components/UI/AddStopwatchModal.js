@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiX, FiCheck } from 'react-icons/fi';
+import { FiX, FiCheck, FiMessageCircle } from 'react-icons/fi';
 import { HexColorPicker } from 'react-colorful';
 import { useTimers } from '../../context/TimerContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from '../../hooks/useTranslation';
 
-// 正计时专用预设颜色
+// 秒表专用预设颜色
 const stopwatchColors = [
   '#52C41A', // 绿色主题
   '#1890FF', // 蓝色
@@ -42,12 +42,14 @@ export default function AddStopwatchModal({ onClose }) {
   const [formData, setFormData] = useState({
     name: '',
     color: randomColor,
+    customDescription: '',
   });
   
   // 处理表单输入变化
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
   };
   
   // 设置颜色
@@ -58,11 +60,15 @@ export default function AddStopwatchModal({ onClose }) {
   // 提交表单
   const handleSubmit = () => {
     const timerData = {
-      name: formData.name,
+      name: formData.name.trim(),
       type: 'stopwatch',
-      startTime: new Date().toISOString(), // 正计时记录开始时间
+      startTime: new Date().toISOString(),
       color: formData.color,
+      customDescription: formData.customDescription.trim(),
       isRunning: true, // 创建后立即开始
+      totalPausedTime: 0,
+      pausedAt: null,
+      laps: [],
     };
     
     addTimer(timerData);
@@ -92,7 +98,7 @@ export default function AddStopwatchModal({ onClose }) {
         {step === 1 && (
           <>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold">{t('modal.addStopwatch.create', '创建正计时')}</h2>
+              <h2 className="text-2xl font-semibold">{t('modal.addStopwatch.create', '创建秒表')}</h2>
               <button
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
                 onClick={onClose}
@@ -114,13 +120,31 @@ export default function AddStopwatchModal({ onClose }) {
                   required
                 />
               </div>
-              
+
+              <div>
+                <div className="mb-1.5 flex items-center justify-between gap-3">
+                  <label className="flex items-center gap-2 text-sm font-medium" htmlFor="stopwatch-custom-description"><FiMessageCircle className="text-gray-400" />{t('timer.customDescription', '自定义句子')}</label>
+                  <span className="text-xs text-gray-400">{formData.customDescription.length}/80</span>
+                </div>
+                <textarea
+                  id="stopwatch-custom-description"
+                  name="customDescription"
+                  value={formData.customDescription}
+                  onChange={handleChange}
+                  maxLength={80}
+                  rows={3}
+                  placeholder={t('timer.customDescriptionPlaceholder', '例如：每一秒，都在靠近更好的自己')}
+                  className="w-full resize-none rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm leading-relaxed outline-none backdrop-blur-sm transition-colors placeholder:text-gray-400 focus:border-primary-400 focus:ring-2 focus:ring-primary-500/30 dark:border-white/10 dark:bg-black/10"
+                />
+                <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{t('timer.customDescriptionHint', '填写后将替代计时器底部的默认状态文案')}</p>
+              </div>
+
               <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                 <h3 className="font-medium text-green-800 dark:text-green-200 mb-2">
-                  {t('modal.addStopwatch.description', '正计时说明')}
+                  {t('modal.addStopwatch.description', '秒表说明')}
                 </h3>
                 <p className="text-sm text-green-600 dark:text-green-300">
-                  {t('modal.addStopwatch.descriptionText', '正计时将从零开始计算经过的时间，创建后会立即开始计时。您可以随时暂停和恢复计时。')}
+                  {t('modal.addStopwatch.descriptionText', '秒表从零开始，适合需要暂停、恢复和分段记录的短时计时。')}
                 </p>
               </div>
             </form>
@@ -135,7 +159,7 @@ export default function AddStopwatchModal({ onClose }) {
               <button
                 className="btn-glass-primary"
                 onClick={() => setStep(2)}
-                disabled={!formData.name}
+                disabled={!formData.name.trim()}
                 data-insightflare-event="stopwatch_step_color"
               >
                 {t('common.next', '下一步')}
@@ -209,8 +233,8 @@ export default function AddStopwatchModal({ onClose }) {
             >
               <FiCheck className="text-white text-3xl" />
             </motion.div>
-            <h2 className="text-2xl font-semibold mb-2">{t('timer.stopwatchCreated', '正计时已创建')}</h2>
-            <p className="text-gray-500 dark:text-gray-400">{t('timer.stopwatchStarted', '正计时已开始运行')}</p>
+            <h2 className="text-2xl font-semibold mb-2">{t('timer.stopwatchCreated', '秒表已创建')}</h2>
+            <p className="text-gray-500 dark:text-gray-400">{t('timer.stopwatchStarted', '秒表已开始运行')}</p>
           </div>
         )}
       </motion.div>
