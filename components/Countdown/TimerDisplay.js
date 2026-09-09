@@ -27,6 +27,7 @@ export default function TimerDisplay() {
   const [isLapModalOpen, setIsLapModalOpen] = useState(false);
   const [isStopConfirmOpen, setIsStopConfirmOpen] = useState(false);
   const [isMilestonesOpen, setIsMilestonesOpen] = useState(false);
+  const [showAnniversarySwitchHint, setShowAnniversarySwitchHint] = useState(false);
   const [totalDays, setTotalDays] = useState(0);
   const [nextAnniversary, setNextAnniversary] = useState(null);
   
@@ -399,6 +400,14 @@ export default function TimerDisplay() {
   
   const activeTimer = getActiveTimer();
 
+  useEffect(() => {
+    try {
+      setShowAnniversarySwitchHint(localStorage.getItem('timepulse-anniversary-switch-hint-seen') !== 'true');
+    } catch (error) {
+      setShowAnniversarySwitchHint(true);
+    }
+  }, []);
+
   // 字体大小映射
   const getTimerFontSizeClasses = () => {
     if (isFullscreen) {
@@ -469,6 +478,18 @@ export default function TimerDisplay() {
         return `${t('timer.target')}: ${new Date(activeTimer.targetDate).toLocaleString()}`;
     }
   };
+
+  const handleAnniversaryDisplayToggle = () => {
+    if (activeTimer.type !== 'anniversary') return;
+
+    const nextMode = anniversaryDisplayMode === 'totalDays' ? 'precise' : 'totalDays';
+    updateTimer(activeTimer.id, { displayMode: nextMode });
+    setShowAnniversarySwitchHint(false);
+    try {
+      localStorage.setItem('timepulse-anniversary-switch-hint-seen', 'true');
+    } catch (error) {}
+    track('anniversary_display_toggle', { display_mode: nextMode });
+  };
   
   return (
     <motion.div 
@@ -495,22 +516,48 @@ export default function TimerDisplay() {
       {/* 时间显示 */}
       <motion.div
         className={activeTimer.type === 'stopwatch' || activeTimer.type === 'anniversary'
-          ? 'flex flex-wrap gap-3 sm:gap-4 items-start justify-center max-w-6xl'
+          ? `flex flex-wrap gap-3 sm:gap-4 items-start justify-center max-w-6xl ${activeTimer.type === 'anniversary' ? 'cursor-pointer select-none outline-none transition-[filter] duration-200 hover:brightness-[1.03] focus-visible:brightness-110' : ''}`
           : `flex items-center justify-center ${showYears ? 'flex-col sm:flex-row gap-2 sm:gap-0' : 'flex-row'} space-x-0 sm:space-x-4`
         }
+        role={activeTimer.type === 'anniversary' ? 'button' : undefined}
+        tabIndex={activeTimer.type === 'anniversary' ? 0 : undefined}
+        aria-label={activeTimer.type === 'anniversary'
+          ? t(anniversaryDisplayMode === 'totalDays' ? 'anniversary.showPrecise' : 'anniversary.showTotalDays', anniversaryDisplayMode === 'totalDays' ? '显示年月日时分秒' : '显示累计天数')
+          : undefined}
+        title={activeTimer.type === 'anniversary' ? t('anniversary.switchHint', '点击时间切换显示方式') : undefined}
+        onClick={activeTimer.type === 'anniversary' ? handleAnniversaryDisplayToggle : undefined}
+        onKeyDown={activeTimer.type === 'anniversary' ? (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleAnniversaryDisplayToggle();
+          }
+        } : undefined}
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
         {activeTimer.type === 'anniversary' ? (
-          activeTimer.displayMode === 'totalDays' ? (
-            <div className="glass-card rounded-[2rem] px-10 py-7 sm:px-16 sm:py-9 min-w-[240px]">
-              <div className="text-6xl sm:text-8xl font-semibold tracking-tight" style={{ color: activeTimer.color }}>{totalDays}</div>
-              <div className="mt-2 text-sm text-gray-500">{t('anniversary.daysTogether', '已走过的天数')}</div>
-            </div>
-          ) : (
-            <AnimatePresence mode="popLayout">{visibleAnniversaryUnits.map(unit => <motion.div layout key={unit} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><DigitColumn value={formatNumber(timeValue[unit])} label={t(`time.${unit}`)} color={activeTimer.color || '#f43f5e'} fontSize={isFullscreen ? timerFontSize : 'small'} labelFontSize={labelFontSize} /></motion.div>)}</AnimatePresence>
-          )
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={anniversaryDisplayMode}
+              className="flex max-w-full flex-wrap items-start justify-center gap-3 sm:gap-4"
+              initial={{ opacity: 0, y: 6, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.985 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {anniversaryDisplayMode === 'totalDays' ? (
+                <div className="glass-card rounded-[2rem] px-10 py-7 sm:px-16 sm:py-9 min-w-[240px]">
+                  <div className="text-6xl sm:text-8xl font-semibold tracking-tight" style={{ color: activeTimer.color }}>{totalDays}</div>
+                  <div className="mt-2 text-sm text-gray-500">{t('anniversary.daysTogether', '已走过的天数')}</div>
+                </div>
+              ) : (
+                <AnimatePresence mode="popLayout">
+                  {visibleAnniversaryUnits.map(unit => <motion.div layout key={unit} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><DigitColumn value={formatNumber(timeValue[unit])} label={t(`time.${unit}`)} color={activeTimer.color || '#f43f5e'} fontSize={isFullscreen ? timerFontSize : 'small'} labelFontSize={labelFontSize} /></motion.div>)}
+                </AnimatePresence>
+              )}
+            </motion.div>
+          </AnimatePresence>
         ) : activeTimer.type === 'stopwatch' ? (
           <AnimatePresence mode="popLayout">
             {visibleStopwatchUnits.map((unit) => (
@@ -602,7 +649,19 @@ export default function TimerDisplay() {
 
       {activeTimer.type === 'anniversary' && (
         <div className="mt-6 flex flex-col items-center gap-4">
-          <div className="glass-card rounded-full p-1 flex flex-wrap justify-center gap-1">{['totalDays', 'precise'].map(mode => <button key={mode} onClick={() => updateTimer(activeTimer.id, { displayMode: mode })} className={`px-4 py-2 rounded-full text-sm transition-colors ${anniversaryDisplayMode === mode ? 'text-white' : 'text-gray-500 hover:text-gray-800 dark:hover:text-white'}`} style={anniversaryDisplayMode === mode ? { backgroundColor: activeTimer.color } : {}}>{t(`anniversary.${mode}`, { totalDays: '累计天数', precise: '年月日时分秒' }[mode])}</button>)}</div>
+          <AnimatePresence initial={false}>
+            {showAnniversarySwitchHint && (
+              <motion.p
+                className="text-xs text-gray-500/80 dark:text-gray-400/80"
+                initial={{ opacity: 0, y: -3 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -3 }}
+                transition={{ duration: 0.2 }}
+              >
+                {t('anniversary.switchHint', '点击时间切换显示方式')}
+              </motion.p>
+            )}
+          </AnimatePresence>
           <button className="glass-card px-5 py-2.5 rounded-full flex items-center gap-2" style={{ color: activeTimer.color }} onClick={() => setIsMilestonesOpen(true)}><FiCalendar />{t('milestone.title', '人生里程碑')}</button>
           {nextAnniversary && <p className="text-sm text-gray-500">{t('anniversary.nextIn', '{{days}} 天后周年').replace('{{days}}', getDaysUntil(nextAnniversary))}</p>}
         </div>

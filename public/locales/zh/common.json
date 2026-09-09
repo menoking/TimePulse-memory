@@ -358,7 +358,7 @@
   },
   "anniversary": {
     "create": "创建纪念日", "name": "名称", "namePlaceholder": "例如：我们相识", "nameRequired": "请输入纪念日名称", "pastRequired": "开始时间必须有效且不能晚于现在",
-    "startTime": "开始日期与时间", "displayMode": "显示方式", "totalDays": "累计天数", "calendar": "年月日", "precise": "年月日时分秒", "calendarDuration": "年月日", "preciseDuration": "年月日时分秒",
+    "startTime": "开始日期与时间", "displayMode": "显示方式", "totalDays": "累计天数", "calendar": "年月日", "precise": "年月日时分秒", "calendarDuration": "年月日", "preciseDuration": "年月日时分秒", "switchHint": "点击时间切换显示方式", "showTotalDays": "显示累计天数", "showPrecise": "显示年月日时分秒",
     "countRule": "计日规则", "elapsed": "满 24 小时计一天", "dateOnly": "按自然日", "inclusive": "含开始日", "calendarType": "周年历法", "solar": "公历", "lunar": "农历",
     "annualReminder": "每年周年提醒", "remindBefore": "提前提醒", "sameDay": "当天", "milestoneAlerts": "累计天数提醒", "since": "始于", "daysTogether": "已走过的天数", "nextIn": "{{days}} 天后周年"
   },

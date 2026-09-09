@@ -358,7 +358,7 @@
   },
   "anniversary": {
     "create": "Create anniversary", "name": "Name", "namePlaceholder": "For example: The day we met", "nameRequired": "Enter a name", "pastRequired": "The start time must be valid and not in the future",
-    "startTime": "Start date and time", "displayMode": "Display", "totalDays": "Total days", "calendar": "Calendar", "precise": "Full duration", "calendarDuration": "Years, months and days", "preciseDuration": "Years to seconds",
+    "startTime": "Start date and time", "displayMode": "Display", "totalDays": "Total days", "calendar": "Calendar", "precise": "Full duration", "calendarDuration": "Years, months and days", "preciseDuration": "Years to seconds", "switchHint": "Click the time to change its display", "showTotalDays": "Show total days", "showPrecise": "Show years through seconds",
     "countRule": "Counting rule", "elapsed": "Every full 24 hours", "dateOnly": "Calendar days", "inclusive": "Include start day", "calendarType": "Anniversary calendar", "solar": "Gregorian", "lunar": "Lunar",
     "annualReminder": "Annual reminder", "remindBefore": "Remind before", "sameDay": "Same day", "milestoneAlerts": "Day milestones", "since": "Since", "daysTogether": "days together", "nextIn": "Anniversary in {{days}} days"
   },
