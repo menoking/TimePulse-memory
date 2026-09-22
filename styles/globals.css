@@ -844,3 +844,22 @@ body {
     animation-name: firefoxFadeOut !important;
   }
 }
+
+/* 主计时面板专用玻璃层，透明度由背景设置独立控制。 */
+.glass-card.timer-panel-card {
+  background: rgba(255, 255, 255, var(--timer-panel-light-alpha, 0.7)) !important;
+  -webkit-backdrop-filter: blur(var(--timer-panel-blur, 18px)) !important;
+  backdrop-filter: blur(var(--timer-panel-blur, 18px)) !important;
+}
+
+.dark .glass-card.timer-panel-card {
+  background: rgba(0, 0, 0, var(--timer-panel-dark-alpha, 0.385)) !important;
+}
+
+button.glass-card.timer-panel-card:hover {
+  background: rgba(255, 255, 255, calc(var(--timer-panel-light-alpha, 0.7) + 0.08)) !important;
+}
+
+.dark button.glass-card.timer-panel-card:hover {
+  background: rgba(0, 0, 0, calc(var(--timer-panel-dark-alpha, 0.385) + 0.08)) !important;
+}

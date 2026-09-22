@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   FiDroplet,
+  FiClock,
   FiEye,
   FiImage,
   FiLayers,
@@ -101,6 +102,7 @@ export default function BackgroundSettingsModal({ onClose }) {
     imageOpacity,
     gradientEnabled,
     gradientOpacity,
+    timerPanelOpacity,
     bgOpacity,
     blurAmount,
     setBackgroundMode,
@@ -109,6 +111,7 @@ export default function BackgroundSettingsModal({ onClose }) {
     setImageOpacity,
     setGradientEnabled,
     setGradientOpacity,
+    setTimerPanelOpacity,
     setBgOpacity,
     setBlurAmount,
     setCustomBackgroundId,
@@ -430,6 +433,48 @@ export default function BackgroundSettingsModal({ onClose }) {
                   accentColor={accentColor}
                 />
               </div>
+            </section>
+
+            <section aria-labelledby="timer-panel-opacity-title" className="rounded-2xl border border-white/20 bg-white/10 p-4 dark:border-white/10 dark:bg-black/10">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="rounded-xl bg-white/50 p-2 dark:bg-white/10" aria-hidden="true">
+                    <FiClock className="text-lg" />
+                  </span>
+                  <div>
+                    <h3 id="timer-panel-opacity-title" className="text-sm font-medium">计时主面板</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">调整时间数字、标签和自定义句子卡片的背景透明度</p>
+                  </div>
+                </div>
+                <div
+                  className="glass-card timer-panel-card shrink-0 rounded-xl px-3 py-2 text-sm font-semibold tabular-nums"
+                  style={{
+                    color: accentColor,
+                    '--timer-panel-light-alpha': timerPanelOpacity,
+                    '--timer-panel-dark-alpha': Math.min(timerPanelOpacity * 0.55, 0.55),
+                    '--timer-panel-blur': `${Math.round(18 * Math.min(timerPanelOpacity / 0.7, 1))}px`
+                  }}
+                  aria-hidden="true"
+                >
+                  12:45
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-3">
+                <input
+                  id="timer-panel-opacity"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={timerPanelOpacity}
+                  onChange={event => setTimerPanelOpacity(parseFloat(event.target.value))}
+                  aria-label="计时主面板背景透明度"
+                  className="h-2 min-w-0 flex-1 cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
+                  style={{ accentColor }}
+                />
+                <span className="w-11 text-right text-xs tabular-nums text-gray-500 dark:text-gray-400">{Math.round(timerPanelOpacity * 100)}%</span>
+              </div>
+              <div className="mt-1 flex justify-between pr-14 text-xs text-gray-500 dark:text-gray-400"><span>透明</span><span>柔和</span><span>清晰</span></div>
             </section>
 
             <section aria-labelledby="background-mode-title">

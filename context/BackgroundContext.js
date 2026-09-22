@@ -12,6 +12,7 @@ const defaultSettings = {
   imageOpacity: 1,
   gradientEnabled: true,
   gradientOpacity: 1,
+  timerPanelOpacity: 0.7,
   bgOpacity: 0.3,
   blurAmount: 0
 };
@@ -33,6 +34,7 @@ function normalizeSettings(stored = {}) {
     imageOpacity: clamp(Number(stored.imageOpacity ?? 1), 0, 1),
     gradientEnabled: stored.gradientEnabled ?? stored.backgroundType !== 'custom',
     gradientOpacity: clamp(Number(stored.gradientOpacity ?? 1), 0, 1),
+    timerPanelOpacity: clamp(Number(stored.timerPanelOpacity ?? defaultSettings.timerPanelOpacity), 0, 1),
     bgOpacity: clamp(Number(stored.bgOpacity ?? defaultSettings.bgOpacity), 0, 1),
     blurAmount: clamp(Number(stored.blurAmount ?? 0), 0, 20)
   };
@@ -83,6 +85,7 @@ export function BackgroundProvider({ children }) {
   const setImageOpacity = (opacity) => updateSetting('imageOpacity', clamp(Number(opacity), 0, 1));
   const setGradientEnabled = (enabled) => updateSetting('gradientEnabled', Boolean(enabled));
   const setGradientOpacity = (opacity) => updateSetting('gradientOpacity', clamp(Number(opacity), 0, 1));
+  const setTimerPanelOpacity = (opacity) => updateSetting('timerPanelOpacity', clamp(Number(opacity), 0, 1));
   const setBgOpacity = (opacity) => updateSetting('bgOpacity', clamp(Number(opacity), 0, 1));
   const setBlurAmount = (amount) => updateSetting('blurAmount', clamp(Number(amount), 0, 20));
 
@@ -113,6 +116,7 @@ export function BackgroundProvider({ children }) {
     setImageOpacity,
     setGradientEnabled,
     setGradientOpacity,
+    setTimerPanelOpacity,
     setBgOpacity,
     setBlurAmount,
     setBackgroundConfig,

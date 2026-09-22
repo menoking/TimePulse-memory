@@ -150,7 +150,7 @@ export default function DigitColumn({ value, label, color = '#0ea5e9', fontSize 
   return (
     <div className="flex flex-col items-center">
       <motion.div 
-        className={`${getWidthClass()} h-24 sm:h-32 md:h-36 rounded-xl glass-card flex items-center justify-center relative overflow-hidden`}
+        className={`${getWidthClass()} h-24 sm:h-32 md:h-36 rounded-xl glass-card timer-panel-card flex items-center justify-center relative overflow-hidden`}
         style={{ 
           boxShadow: `0 0 30px ${color}20`,
           transition: 'box-shadow 0.5s var(--transition-timing)',

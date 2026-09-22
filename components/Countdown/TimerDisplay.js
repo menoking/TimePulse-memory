@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { intervalToDuration } from 'date-fns';
 import { useTimers } from '../../context/SupabaseTimerContext';
 import { useFullscreen } from '../../context/FullscreenContext';
+import { useBackground } from '../../context/BackgroundContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import DigitColumn from './DigitColumn';
 import { addNotification } from '../../utils/notificationManager';
@@ -18,6 +19,7 @@ const EMPTY_TIME_VALUE = { years: 0, months: 0, days: 0, hours: 0, minutes: 0, s
 export default function TimerDisplay() {
   const { getActiveTimer, updateTimer, checkAndUpdateDefaultTimer, canEdit } = useTimers();
   const { isFullscreen, timerFontSize, labelFontSize } = useFullscreen();
+  const { timerPanelOpacity } = useBackground();
   const { t, currentLang } = useTranslation();
   const [timeValue, setTimeValue] = useState(EMPTY_TIME_VALUE);
   const [showDays, setShowDays] = useState(true);
@@ -502,6 +504,11 @@ export default function TimerDisplay() {
   return (
     <motion.div 
       className="flex flex-col items-center justify-center text-center px-4 relative z-10"
+      style={{
+        '--timer-panel-light-alpha': timerPanelOpacity,
+        '--timer-panel-dark-alpha': Math.min(timerPanelOpacity * 0.55, 0.55),
+        '--timer-panel-blur': `${Math.round(18 * Math.min(timerPanelOpacity / 0.7, 1))}px`
+      }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -555,7 +562,7 @@ export default function TimerDisplay() {
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
               {anniversaryDisplayMode === 'totalDays' ? (
-                <div className="glass-card rounded-[2rem] px-10 py-7 sm:px-16 sm:py-9 min-w-[240px]">
+                <div className="glass-card timer-panel-card rounded-[2rem] px-10 py-7 sm:px-16 sm:py-9 min-w-[240px]">
                   <div className="text-6xl sm:text-8xl font-semibold tracking-tight" style={{ color: activeTimer.color }}>{totalDays}</div>
                   <div className="mt-2 text-sm text-gray-500">{t('anniversary.daysTogether', '已走过的天数')}</div>
                 </div>
@@ -670,7 +677,7 @@ export default function TimerDisplay() {
               </motion.p>
             )}
           </AnimatePresence>
-          <button className="glass-card px-5 py-2.5 rounded-full flex items-center gap-2" style={{ color: activeTimer.color }} onClick={() => setIsMilestonesOpen(true)}><FiCalendar />{t('milestone.title', '人生里程碑')}</button>
+          <button className="glass-card timer-panel-card px-5 py-2.5 rounded-full flex items-center gap-2" style={{ color: activeTimer.color }} onClick={() => setIsMilestonesOpen(true)}><FiCalendar />{t('milestone.title', '人生里程碑')}</button>
           {nextAnniversary && <p className="text-sm text-gray-500">{t('anniversary.nextIn', '{{days}} 天后周年').replace('{{days}}', getDaysUntil(nextAnniversary))}</p>}
         </div>
       )}
@@ -689,7 +696,7 @@ export default function TimerDisplay() {
         >
           <button
             onClick={() => handleStopwatchControl(isRunning ? 'pause' : 'play')}
-            className="glass-card p-4 rounded-full hover:bg-white/10 dark:hover:bg-black/10 transition-colors cursor-pointer select-none"
+            className="glass-card timer-panel-card p-4 rounded-full hover:bg-white/10 dark:hover:bg-black/10 transition-colors cursor-pointer select-none"
             style={{ 
               color: activeTimer.color,
               zIndex: 41,
@@ -703,7 +710,7 @@ export default function TimerDisplay() {
           <button
             onClick={() => handleStopwatchControl('lap')}
             disabled={!isRunning}
-            className="glass-card p-4 rounded-full hover:bg-white/10 dark:hover:bg-black/10 transition-colors cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed"
+            className="glass-card timer-panel-card p-4 rounded-full hover:bg-white/10 dark:hover:bg-black/10 transition-colors cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ 
               color: activeTimer.color,
               zIndex: 41,
@@ -716,7 +723,7 @@ export default function TimerDisplay() {
           </button>
           <button
             onClick={() => setIsStopConfirmOpen(true)}
-            className="glass-card p-4 rounded-full hover:bg-white/10 dark:hover:bg-black/10 transition-colors cursor-pointer select-none"
+            className="glass-card timer-panel-card p-4 rounded-full hover:bg-white/10 dark:hover:bg-black/10 transition-colors cursor-pointer select-none"
             style={{ 
               color: activeTimer.color,
               zIndex: 41,
@@ -741,7 +748,7 @@ export default function TimerDisplay() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="mt-8 glass-card px-6 py-4 rounded-xl"
+            className="mt-8 glass-card timer-panel-card px-6 py-4 rounded-xl"
           >
             <p className="text-lg font-medium text-gray-800 dark:text-gray-200">
               {t('timer.finished')}
@@ -758,7 +765,7 @@ export default function TimerDisplay() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <div className="glass-card flex items-center gap-3 rounded-2xl border border-white/15 px-4 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]">
+          <div className="glass-card timer-panel-card flex items-center gap-3 rounded-2xl border border-white/15 px-4 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20 dark:bg-white/10" style={{ color: activeTimer.color }}>
               {activeTimer.type === 'stopwatch' && !isRunning ? <FiPause /> : activeTimer.customDescription?.trim() ? <FiMessageCircle /> : <FiActivity />}
             </span>
@@ -773,7 +780,7 @@ export default function TimerDisplay() {
       {/* 分段计时按钮 */}
       {activeTimer.type === 'stopwatch' && activeTimer.laps && activeTimer.laps.length > 0 && (
         <motion.button
-          className="mt-6 glass-card px-6 py-3 rounded-xl hover:bg-white/10 dark:hover:bg-black/10 transition-colors cursor-pointer"
+          className="mt-6 glass-card timer-panel-card px-6 py-3 rounded-xl hover:bg-white/10 dark:hover:bg-black/10 transition-colors cursor-pointer"
           style={{ 
             color: activeTimer.color,
             zIndex: 10,
