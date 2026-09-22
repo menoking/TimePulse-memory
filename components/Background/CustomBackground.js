@@ -1,109 +1,93 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useBackground } from '../../context/BackgroundContext';
 import imageStorage from '../../utils/imageStorage';
 
 export default function CustomBackground() {
-  const { customBackgroundId, backgroundMode, bgOpacity, blurAmount } = useBackground();
+  const {
+    customBackgroundId,
+    backgroundMode,
+    backgroundPositionY,
+    imageEnabled,
+    imageOpacity,
+    blurAmount
+  } = useBackground();
   const [imageUrl, setImageUrl] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
+    let isCurrent = true;
+
     if (!customBackgroundId) {
       setImageUrl(null);
       setIsLoading(false);
-      return;
+      return () => { isCurrent = false; };
     }
 
     const loadImage = async () => {
       setIsLoading(true);
-      setError(null);
 
       try {
         const imageData = await imageStorage.getImage(customBackgroundId);
-        if (imageData) {
-          setImageUrl(imageData.url);
-        } else {
-          setError('未找到背景图片');
+        if (isCurrent) {
+          setImageUrl(imageData?.url || null);
         }
-      } catch (err) {
-        console.error('加载背景图片失败:', err);
-        setError(err.message);
+      } catch (error) {
+        console.error('加载背景图片失败:', error);
+        if (isCurrent) setImageUrl(null);
       } finally {
-        setIsLoading(false);
+        if (isCurrent) setIsLoading(false);
       }
     };
 
     loadImage();
+    return () => { isCurrent = false; };
   }, [customBackgroundId]);
 
-  // 背景模式对应的样式
   const getBackgroundStyle = () => {
-    if (!imageUrl) return {};
-
-    switch (backgroundMode) {
-      case 'contain':
-        return {
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        };
-      case 'repeat':
-        return {
-          backgroundSize: 'auto',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'repeat'
-        };
-      case 'cover':
-      default:
-        return {
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
-        };
+    if (backgroundMode === 'contain') {
+      return {
+        backgroundSize: 'contain',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      };
     }
+
+    if (backgroundMode === 'repeat') {
+      return {
+        backgroundSize: 'auto',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'repeat'
+      };
+    }
+
+    return {
+      backgroundSize: 'cover',
+      backgroundPosition: `center ${backgroundPositionY}%`,
+      backgroundRepeat: 'no-repeat'
+    };
   };
 
-  if (!customBackgroundId || isLoading) {
-    return null;
-  }
-
-  if (error) {
-    // 加载失败时返回 null，让 GradientBackground 显示
-    return null;
-  }
+  if (!customBackgroundId || isLoading || !imageUrl) return null;
 
   return (
-    <div className="fixed inset-0 overflow-hidden z-0 pointer-events-none">
+    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
       <AnimatePresence>
-        {imageUrl && (
-          <motion.div
-            key={customBackgroundId}
-            className="absolute inset-0"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            style={{
-              backgroundImage: `url(${imageUrl})`,
-              ...getBackgroundStyle(),
-              filter: blurAmount > 0 ? `blur(${blurAmount}px)` : 'none'
-            }}
-          />
-        )}
+        <motion.div
+          key={customBackgroundId}
+          className="absolute inset-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: imageEnabled ? imageOpacity : 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          style={{
+            backgroundImage: `url(${imageUrl})`,
+            ...getBackgroundStyle(),
+            filter: blurAmount > 0 ? `blur(${blurAmount}px)` : 'none',
+            transform: blurAmount > 0 ? 'scale(1.04)' : 'none'
+          }}
+        />
       </AnimatePresence>
-
-      {/* 遮罩层 - 确保文字可读性 */}
-      <motion.div
-        className="absolute inset-0"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: bgOpacity }}
-        transition={{ duration: 0.3 }}
-        style={{
-          backgroundColor: 'rgba(0, 0, 0, 1)'
-        }}
-      />
     </div>
   );
 }

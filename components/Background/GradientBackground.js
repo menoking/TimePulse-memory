@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTimers } from '../../context/SupabaseTimerContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -7,15 +7,9 @@ import { useBackground } from '../../context/BackgroundContext';
 export default function GradientBackground() {
   const { getActiveTimer, activeTimerId } = useTimers();
   const { theme } = useTheme();
-  const { backgroundType } = useBackground();
-
-  // 如果使用自定义背景，不渲染渐变背景
-  if (backgroundType === 'custom') {
-    return null;
-  }
+  const { gradientEnabled, gradientOpacity } = useBackground();
   const [circles, setCircles] = useState([]);
   const [prevTimerId, setPrevTimerId] = useState(null);
-  const containerRef = useRef(null);
   const activeTimer = getActiveTimer();
   const [isSafari, setIsSafari] = useState(false);
   
@@ -101,7 +95,13 @@ export default function GradientBackground() {
   };
   
   return (
-    <div className="fixed inset-0 overflow-hidden z-0 pointer-events-none">
+    <motion.div
+      className="fixed inset-0 z-[1] overflow-hidden pointer-events-none"
+      aria-hidden="true"
+      initial={false}
+      animate={{ opacity: gradientEnabled ? gradientOpacity : 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+    >
       <AnimatePresence>
         {circles.map(circle => (
           <motion.div
@@ -153,6 +153,6 @@ export default function GradientBackground() {
           onAnimationComplete={() => setPrevTimerId(activeTimerId)}
         />
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '../components/Layout/Layout';
 import GradientBackground from '../components/Background/GradientBackground';
 import CustomBackground from '../components/Background/CustomBackground';
+import BackgroundOverlay from '../components/Background/BackgroundOverlay';
 import TimerDisplay from '../components/Countdown/TimerDisplay';
 import BackgroundSettingsModal from '../components/UI/BackgroundSettingsModal';
 import FullscreenSettingsModal from '../components/UI/FullscreenSettingsModal';
@@ -87,8 +88,9 @@ export default function Home() {
   return (
     <>
       <Layout>
-        <GradientBackground />
         <CustomBackground />
+        <GradientBackground />
+        <BackgroundOverlay />
 
         <main className={`relative flex flex-col items-center justify-center z-10 ${isFullscreen ? 'min-h-[100dvh]' : 'min-h-[100dvh] py-20'}`}>
           {!isLoaded && (

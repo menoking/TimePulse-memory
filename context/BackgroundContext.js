@@ -1,35 +1,52 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 const BackgroundContext = createContext();
 
 const STORAGE_KEY = 'timepulse_background_settings';
 
 const defaultSettings = {
-  backgroundType: 'gradient', // 'gradient' | 'custom'
   customBackgroundId: null,
-  backgroundMode: 'cover', // 'cover' | 'contain' | 'repeat'
+  backgroundMode: 'cover',
+  backgroundPositionY: 50,
+  imageEnabled: false,
+  imageOpacity: 1,
+  gradientEnabled: true,
+  gradientOpacity: 1,
   bgOpacity: 0.3,
-  blurAmount: 0 // 高斯模糊程度 (0-20px)
+  blurAmount: 0
 };
 
-/**
- * 背景状态管理 Context Provider
- */
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+function normalizeSettings(stored = {}) {
+  const hasCustomImage = Boolean(stored.customBackgroundId);
+
+  return {
+    ...defaultSettings,
+    customBackgroundId: stored.customBackgroundId || null,
+    backgroundMode: ['cover', 'contain', 'repeat'].includes(stored.backgroundMode)
+      ? stored.backgroundMode
+      : defaultSettings.backgroundMode,
+    backgroundPositionY: clamp(Number(stored.backgroundPositionY ?? 50), 0, 100),
+    // Preserve the appearance of settings saved before layered backgrounds existed.
+    imageEnabled: stored.imageEnabled ?? (stored.backgroundType === 'custom' && hasCustomImage),
+    imageOpacity: clamp(Number(stored.imageOpacity ?? 1), 0, 1),
+    gradientEnabled: stored.gradientEnabled ?? stored.backgroundType !== 'custom',
+    gradientOpacity: clamp(Number(stored.gradientOpacity ?? 1), 0, 1),
+    bgOpacity: clamp(Number(stored.bgOpacity ?? defaultSettings.bgOpacity), 0, 1),
+    blurAmount: clamp(Number(stored.blurAmount ?? 0), 0, 20)
+  };
+}
+
 export function BackgroundProvider({ children }) {
   const [settings, setSettings] = useState(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 初始化：从 localStorage 读取设置
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        setSettings(prev => ({
-          ...prev,
-          ...parsed
-        }));
+        setSettings(normalizeSettings(JSON.parse(stored)));
       }
     } catch (error) {
       console.error('读取背景设置失败:', error);
@@ -38,7 +55,6 @@ export function BackgroundProvider({ children }) {
     }
   }, []);
 
-  // 保存设置到 localStorage
   useEffect(() => {
     if (!isLoading) {
       try {
@@ -49,98 +65,54 @@ export function BackgroundProvider({ children }) {
     }
   }, [settings, isLoading]);
 
-  /**
-   * 设置背景类型
-   */
-  const setBackgroundType = (type) => {
-    setSettings(prev => ({
-      ...prev,
-      backgroundType: type
-    }));
+  const updateSetting = (key, value) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  /**
-   * 设置自定义背景 ID
-   */
   const setCustomBackgroundId = (id) => {
     setSettings(prev => ({
       ...prev,
       customBackgroundId: id,
-      backgroundType: id ? 'custom' : 'gradient'
+      imageEnabled: Boolean(id)
     }));
   };
 
-  /**
-   * 设置背景模式
-   */
-  const setBackgroundMode = (mode) => {
-    setSettings(prev => ({
-      ...prev,
-      backgroundMode: mode
-    }));
-  };
+  const setBackgroundMode = (mode) => updateSetting('backgroundMode', mode);
+  const setBackgroundPositionY = (position) => updateSetting('backgroundPositionY', clamp(Number(position), 0, 100));
+  const setImageEnabled = (enabled) => updateSetting('imageEnabled', Boolean(enabled));
+  const setImageOpacity = (opacity) => updateSetting('imageOpacity', clamp(Number(opacity), 0, 1));
+  const setGradientEnabled = (enabled) => updateSetting('gradientEnabled', Boolean(enabled));
+  const setGradientOpacity = (opacity) => updateSetting('gradientOpacity', clamp(Number(opacity), 0, 1));
+  const setBgOpacity = (opacity) => updateSetting('bgOpacity', clamp(Number(opacity), 0, 1));
+  const setBlurAmount = (amount) => updateSetting('blurAmount', clamp(Number(amount), 0, 20));
 
-  /**
-   * 设置背景遮罩透明度
-   */
-  const setBgOpacity = (opacity) => {
-    setSettings(prev => ({
-      ...prev,
-      bgOpacity: opacity
-    }));
-  };
-
-  /**
-   * 设置背景模糊程度
-   */
-  const setBlurAmount = (amount) => {
-    setSettings(prev => ({
-      ...prev,
-      blurAmount: amount
-    }));
-  };
-
-  /**
-   * 设置完整的背景配置
-   */
   const setBackgroundConfig = (config) => {
+    setSettings(prev => normalizeSettings({ ...prev, ...config }));
+  };
+
+  const clearCustomBackground = () => {
     setSettings(prev => ({
       ...prev,
-      ...config
+      customBackgroundId: null,
+      imageEnabled: false,
+      imageOpacity: 1,
+      backgroundPositionY: 50,
+      blurAmount: 0
     }));
   };
 
-  /**
-   * 清除自定义背景，恢复默认渐变背景
-   */
-  const clearCustomBackground = () => {
-    setSettings({
-      ...defaultSettings,
-      backgroundMode: settings.backgroundMode,
-      bgOpacity: settings.bgOpacity
-    });
-  };
-
-  /**
-   * 恢复默认设置
-   */
-  const resetToDefaults = () => {
-    setSettings(defaultSettings);
-  };
+  const resetToDefaults = () => setSettings(defaultSettings);
 
   const value = {
-    // 状态
-    backgroundType: settings.backgroundType,
-    customBackgroundId: settings.customBackgroundId,
-    backgroundMode: settings.backgroundMode,
-    bgOpacity: settings.bgOpacity,
-    blurAmount: settings.blurAmount,
+    ...settings,
     isLoading,
-
-    // 方法
-    setBackgroundType,
     setCustomBackgroundId,
     setBackgroundMode,
+    setBackgroundPositionY,
+    setImageEnabled,
+    setImageOpacity,
+    setGradientEnabled,
+    setGradientOpacity,
     setBgOpacity,
     setBlurAmount,
     setBackgroundConfig,
@@ -155,9 +127,6 @@ export function BackgroundProvider({ children }) {
   );
 }
 
-/**
- * 使用背景 Context 的 Hook
- */
 export function useBackground() {
   const context = useContext(BackgroundContext);
   if (!context) {
