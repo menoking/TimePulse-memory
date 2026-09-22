@@ -507,6 +507,8 @@ export default function TimerDisplay() {
       style={{
         '--timer-panel-light-alpha': timerPanelOpacity,
         '--timer-panel-dark-alpha': Math.min(timerPanelOpacity * 0.55, 0.55),
+        '--timer-panel-border-alpha': Math.min(timerPanelOpacity * 0.45, 0.45),
+        '--timer-panel-dark-border-alpha': Math.min(timerPanelOpacity * 0.22, 0.22),
         '--timer-panel-blur': `${Math.round(18 * Math.min(timerPanelOpacity / 0.7, 1))}px`
       }}
       initial={{ opacity: 0 }}
@@ -765,7 +767,7 @@ export default function TimerDisplay() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
-          <div className="glass-card timer-panel-card flex items-center gap-3 rounded-2xl border border-white/15 px-4 py-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]">
+          <div className="glass-card timer-panel-card flex items-center gap-3 rounded-2xl px-4 py-3 text-left">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20 dark:bg-white/10" style={{ color: activeTimer.color }}>
               {activeTimer.type === 'stopwatch' && !isRunning ? <FiPause /> : activeTimer.customDescription?.trim() ? <FiMessageCircle /> : <FiActivity />}
             </span>

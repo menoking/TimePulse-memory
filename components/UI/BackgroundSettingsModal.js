@@ -452,6 +452,8 @@ export default function BackgroundSettingsModal({ onClose }) {
                     color: accentColor,
                     '--timer-panel-light-alpha': timerPanelOpacity,
                     '--timer-panel-dark-alpha': Math.min(timerPanelOpacity * 0.55, 0.55),
+                    '--timer-panel-border-alpha': Math.min(timerPanelOpacity * 0.45, 0.45),
+                    '--timer-panel-dark-border-alpha': Math.min(timerPanelOpacity * 0.22, 0.22),
                     '--timer-panel-blur': `${Math.round(18 * Math.min(timerPanelOpacity / 0.7, 1))}px`
                   }}
                   aria-hidden="true"
