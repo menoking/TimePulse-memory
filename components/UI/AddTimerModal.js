@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiX, FiCalendar, FiClock, FiGlobe, FiCheck } from 'react-icons/fi';
 import { HexColorPicker } from 'react-colorful';
-import { useTimers } from '../../context/TimerContext';
+import { useTimers } from '../../context/SupabaseTimerContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import CustomSelect from './CustomSelect';

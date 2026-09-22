@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { MotionConfig } from 'framer-motion';
 import '../styles/globals.css';
-import { TimerProvider } from '../context/TimerContext';
+import { TimerProvider } from '../context/SupabaseTimerContext';
+import { SupabaseAuthProvider } from '../context/SupabaseAuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { BackgroundProvider } from '../context/BackgroundContext';
 import { FullscreenProvider } from '../context/FullscreenContext';
-import { getFromRemoteCache } from '../utils/syncService';
 import OfflineNotification from '../components/UI/OfflineNotification';
 import GlobalNotificationManager from '../components/UI/GlobalNotificationManager';
 import { testNotification } from '../utils/notifications';
@@ -26,33 +26,6 @@ function MyApp({ Component, pageProps }) {
       const hash = window.location.hash.replace('#', '');
     };
     
-    // 检查URL中是否包含syncId参数
-    const checkSyncId = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const syncId = params.get('syncId');
-      const syncPass = params.get('syncPass');
-      
-      if (syncId) {
-        // 保存同步ID
-        localStorage.setItem('timepulse_sync_id', syncId);
-        console.log(`已从URL导入同步ID: ${syncId}`);
-        
-        // 如果提供了密码，也保存密码并尝试获取数据
-        if (syncPass) {
-          localStorage.setItem('timepulse_sync_password', syncPass);
-          console.log(`已从URL导入同步密码`);
-        }
-        
-        // 清除URL参数但保留其他参数
-        const newParams = new URLSearchParams(window.location.search);
-        newParams.delete('syncId');
-        newParams.delete('syncPass');
-        const newUrl = window.location.pathname + (newParams.toString() ? `?${newParams.toString()}` : '') + window.location.hash;
-        window.history.replaceState({}, document.title, newUrl);
-      }
-    };
-    
-    checkSyncId();
     window.addEventListener('hashchange', handleHashChange);
     
     // 监听Service Worker控制状态变化
@@ -83,19 +56,21 @@ function MyApp({ Component, pageProps }) {
     <ThemeProvider>
       <BackgroundProvider>
         <FullscreenProvider>
-          <TimerProvider>
-            <Head>
-              <title>TimePulse - 纪念日与时间记录</title>
-              <meta name="description" content="记录纪念日、倒计时、秒表与世界时间" />
-              <link rel="icon" href="/favicon.ico" />
-              <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-            </Head>
-            <MotionConfig reducedMotion="user">
-              <OfflineNotification />
-              <GlobalNotificationManager />
-              <Component {...pageProps} />
-            </MotionConfig>
-          </TimerProvider>
+          <SupabaseAuthProvider>
+            <TimerProvider>
+              <Head>
+                <title>TimePulse - 纪念日与时间记录</title>
+                <meta name="description" content="记录纪念日、倒计时、秒表与世界时间" />
+                <link rel="icon" href="/favicon.ico" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+              </Head>
+              <MotionConfig reducedMotion="user">
+                <OfflineNotification />
+                <GlobalNotificationManager />
+                <Component {...pageProps} />
+              </MotionConfig>
+            </TimerProvider>
+          </SupabaseAuthProvider>
         </FullscreenProvider>
       </BackgroundProvider>
     </ThemeProvider>

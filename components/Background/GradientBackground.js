@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTimers } from '../../context/TimerContext';
+import { useTimers } from '../../context/SupabaseTimerContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useBackground } from '../../context/BackgroundContext';
 

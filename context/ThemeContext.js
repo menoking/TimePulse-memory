@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useTimers } from './TimerContext';
+import { useTimers } from './SupabaseTimerContext';
 
 const ThemeContext = createContext();
 

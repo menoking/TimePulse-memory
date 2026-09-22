@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiX, FiHeart, FiMessageCircle } from 'react-icons/fi';
-import { useTimers } from '../../context/TimerContext';
+import { useTimers } from '../../context/SupabaseTimerContext';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const localDateTime = () => {

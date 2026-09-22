@@ -7,15 +7,28 @@ import CustomBackground from '../components/Background/CustomBackground';
 import TimerDisplay from '../components/Countdown/TimerDisplay';
 import BackgroundSettingsModal from '../components/UI/BackgroundSettingsModal';
 import FullscreenSettingsModal from '../components/UI/FullscreenSettingsModal';
-import { useTimers } from '../context/TimerContext';
+import { useTimers } from '../context/SupabaseTimerContext';
 import { useTheme } from '../context/ThemeContext';
 import { useFullscreen } from '../context/FullscreenContext';
 import { parseShareUrl } from '../utils/shareUtils';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function Home() {
-  const { timers, activeTimerId, setActiveTimerId, addTimer } = useTimers();
+  const {
+    timers,
+    activeTimerId,
+    setActiveTimerId,
+    addTimer,
+    canEdit,
+    isSupabaseConfigured,
+    isLoaded,
+    hasPublicPage,
+    loadError,
+    dataSource
+  } = useTimers();
   const { theme, accentColor } = useTheme();
   const { isFullscreen } = useFullscreen();
+  const { t } = useTranslation();
   const router = useRouter();
   
   const [isBackgroundSettingsOpen, setIsBackgroundSettingsOpen] = useState(false);
@@ -29,7 +42,7 @@ export default function Home() {
 
   // 监听URL参数以同步数据
   useEffect(() => {
-    if (router.query.share) {
+    if (router.query.share && canEdit) {
       try {
         const sharedData = parseShareUrl(router.query.share);
         if (sharedData.timers && sharedData.timers.length > 0) {
@@ -43,7 +56,7 @@ export default function Home() {
         addLog(`解析分享数据错误: ${error.message}`);
       }
     }
-  }, [router.query.share, addTimer, setActiveTimerId]);
+  }, [router.query.share, addTimer, canEdit, setActiveTimerId]);
 
   // 初始化日志
   useEffect(() => {
@@ -78,7 +91,31 @@ export default function Home() {
         <CustomBackground />
 
         <main className={`relative flex flex-col items-center justify-center z-10 ${isFullscreen ? 'min-h-[100dvh]' : 'min-h-[100dvh] py-20'}`}>
-          <TimerDisplay />
+          {!isLoaded && (
+            <div className="glass-card rounded-3xl px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+              {t('publicPage.loading', '正在读取公开计时器…')}
+            </div>
+          )}
+          {isLoaded && isSupabaseConfigured && !hasPublicPage && !canEdit && (
+            <div className="glass-card max-w-md rounded-3xl px-7 py-8 text-center">
+              <h2 className="text-xl font-semibold">
+                {loadError
+                  ? t('publicPage.loadFailed', '暂时无法读取公开页面')
+                  : t('publicPage.notPublished', '公开页面尚未发布')}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                {loadError
+                  ? t('publicPage.loadFailedHint', '请检查网络连接并稍后刷新；管理员也可以检查 Supabase 配置。')
+                  : t('publicPage.notPublishedHint', '站点所有者完成首次发布后，计时器会显示在这里。')}
+              </p>
+            </div>
+          )}
+          {isLoaded && (!isSupabaseConfigured || hasPublicPage || canEdit) && <TimerDisplay />}
+          {loadError && dataSource === 'cache' && (
+            <div className="fixed bottom-5 left-1/2 z-30 -translate-x-1/2 rounded-full border border-amber-400/20 bg-amber-50/85 px-4 py-2 text-xs text-amber-700 shadow-lg backdrop-blur-xl dark:bg-amber-950/75 dark:text-amber-200">
+              {t('publicPage.cached', '云端暂时不可用，当前显示上次缓存')}
+            </div>
+          )}
         </main>
       </Layout>
       
@@ -86,7 +123,7 @@ export default function Home() {
 
       {/* 背景设置弹窗 */}
       <AnimatePresence>
-        {isBackgroundSettingsOpen && (
+        {isBackgroundSettingsOpen && canEdit && (
           <BackgroundSettingsModal onClose={() => {
             setIsBackgroundSettingsOpen(false);
             if (window.location.hash === '#background') {

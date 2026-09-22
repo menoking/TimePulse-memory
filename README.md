@@ -8,7 +8,7 @@
   一款以纪念日为核心，同时支持倒计时、秒表和世界时钟的个人时间记录工具。
 </p>
 
-TimePulse Memory 基于 [RavelloH/TimePulse](https://github.com/RavelloH/TimePulse) 进行个性化开发。这个分支保留了原项目的玻璃态界面、多计时器、分享与同步能力，并重点补充了更接近 Days Matter 使用习惯的纪念日管理体验。
+TimePulse Memory 基于 [RavelloH/TimePulse](https://github.com/RavelloH/TimePulse) 进行个性化开发。这个分支保留了原项目的玻璃态界面、多计时器与分享能力，并重点补充了更接近 Days Matter 使用习惯的纪念日管理体验，以及基于 Supabase 的跨设备公开发布能力。
 
 > 感谢 [RavelloH](https://github.com/RavelloH) 创建并开源 TimePulse。上游项目及在线预览请访问 [RavelloH/TimePulse](https://github.com/RavelloH/TimePulse) 与 [TimePulse 在线预览](https://timepulse.ravelloh.top/)。
 
@@ -48,6 +48,15 @@ TimePulse Memory 基于 [RavelloH/TimePulse](https://github.com/RavelloH/TimePul
 - 移除了页面底部的 GitHub 详情区域与下滑提示，让主界面更专注于计时内容。
 - 优化了离线状态提示、分享数据与纪念日通知的数据处理。
 
+### 跨设备公开发布
+
+- 使用 Supabase 保存站点所有者主动发布的计时器，同一个 Vercel 地址在电脑、手机和访客设备上显示相同内容。
+- 访客匿名只读，无需注册或登录；新增、编辑、删除和管理入口仅对管理员开放。
+- 管理员的修改先保存为本机草稿，确认无误后再显式发布，避免编辑过程中直接影响公开页面。
+- 支持把升级前保存在浏览器 `localStorage` 中的计时器手动导入为草稿，不会自动覆盖云端。
+- 发布采用版本检查，发现云端已被更新时会阻止旧页面覆盖新数据。
+- Supabase 暂时不可用时可展示上一次公共缓存，并在页面恢复可见时重新检查。
+
 ## 功能一览
 
 | 类型 | 适用场景 | 主要能力 |
@@ -60,7 +69,7 @@ TimePulse Memory 基于 [RavelloH/TimePulse](https://github.com/RavelloH/TimePul
 除此之外，项目还保留了以下上游能力：
 
 - 多计时器创建、编辑、切换与删除
-- 本地数据持久化与可选云端同步
+- 本地草稿与 Supabase 公开发布
 - 分享链接与二维码
 - 全屏展示和自定义背景
 - 亮色、暗色主题与响应式布局
@@ -85,6 +94,8 @@ pnpm dev
 
 打开 `http://localhost:3000` 即可访问开发环境。
 
+未配置 Supabase 时，项目会保持原有的本地模式，计时器仅保存在当前浏览器。若要让 Vercel 页面在不同设备上共享同一份内容，请按照 [Supabase 免费版部署指南](./docs/SUPABASE_SETUP.md) 完成数据表、管理员账号和环境变量配置。
+
 ### 构建静态版本
 
 ```bash
@@ -99,7 +110,8 @@ pnpm build
 2. 创建纪念日时填写名称和过去的开始时间，再选择计日规则、周年历法与显示方式。
 3. 使用顶部总览按钮集中管理标签、置顶状态、排序和筛选。
 4. 浏览器通知需要用户授权；纪念日和倒计时提醒依赖浏览器能力及应用可用状态。
-5. 数据默认保存在当前浏览器中。清理浏览器站点数据前，建议先确认是否已完成同步或备份。
+5. 未配置 Supabase 时，数据只保存在当前浏览器；配置后，管理员需要在发布中心点击“发布给访客”才会更新公开版本。
+6. 清理管理员浏览器的站点数据前，请先发布重要改动；未发布草稿不会自动上传。
 
 ## 技术栈
 
@@ -107,7 +119,7 @@ pnpm build
 - [Tailwind CSS](https://tailwindcss.com/)
 - [Framer Motion](https://www.framer.com/motion/)
 - [date-fns](https://date-fns.org/) 与 [solarlunar](https://www.npmjs.com/package/solarlunar)
-- localStorage 与 [KV Cache](https://github.com/RavelloH/kv-cache)
+- [Supabase JavaScript](https://supabase.com/docs/reference/javascript/introduction)、Postgres RLS 与 localStorage 草稿缓存
 
 ## 与上游同步
 

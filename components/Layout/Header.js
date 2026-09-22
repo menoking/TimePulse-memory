@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMenu, FiX, FiSettings, FiMoon, FiSun, FiUser, FiMaximize, FiMinimize, FiEdit, FiSave, FiGlobe, FiPlus, FiShare2, FiImage, FiGrid } from 'react-icons/fi';
-import { useTimers } from '../../context/TimerContext';
+import { useTimers } from '../../context/SupabaseTimerContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useFullscreen } from '../../context/FullscreenContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -16,7 +16,7 @@ import TimerOverviewModal from '../UI/TimerOverviewModal';
 import { HexColorPicker } from 'react-colorful';
 
 export default function Header() {
-  const { timers, activeTimerId, setActiveTimerId, deleteTimer, updateTimer } = useTimers();
+  const { timers, activeTimerId, setActiveTimerId, deleteTimer, updateTimer, canEdit, isDirty } = useTimers();
   const { theme, toggleTheme, accentColor } = useTheme();
   const { isFullscreen, isHeaderVisible, headerHideDelay, showHeader, hideHeader } = useFullscreen();
   const { t, changeLanguage, currentLang } = useTranslation();
@@ -618,8 +618,9 @@ export default function Header() {
             >
               <FiGrid className="text-xl" />
             </button>
-            {/* 添加计时器按钮 */}
-            <button
+            {canEdit && <>
+              {/* 添加计时器按钮 */}
+              <button
               className="p-2 ml-1 rounded-full btn-glass-hover text-gray-700 dark:text-gray-300 cursor-pointer"
               onClick={() => {
                 setIsTimerTypeModalOpen(true);
@@ -631,10 +632,10 @@ export default function Header() {
               data-insightflare-event-from="desktop"
             >
               <FiPlus className="text-xl" />
-            </button>
+              </button>
 
-            {/* 背景设置按钮 */}
-            <button
+              {/* 背景设置按钮 */}
+              <button
               className="p-2 ml-1 rounded-full btn-glass-hover text-gray-700 dark:text-gray-300 cursor-pointer"
               onClick={() => {
                 if (window.location.hash !== '#background') {
@@ -644,7 +645,8 @@ export default function Header() {
               data-insightflare-event="background_open"
             >
               <FiImage className="text-xl" />
-            </button>
+              </button>
+            </>}
 
             {/* 分享按钮 */}
             <button
@@ -673,12 +675,13 @@ export default function Header() {
 
             {/* 登录按钮 */}
             <button
-              className="p-2 ml-1 rounded-full btn-glass-hover text-gray-700 dark:text-gray-300 cursor-pointer"
+              className="relative p-2 ml-1 rounded-full btn-glass-hover text-gray-700 dark:text-gray-300 cursor-pointer"
               onClick={openLoginModal}
               data-insightflare-event="login_open"
               data-insightflare-event-from="desktop"
             >
               <FiUser className="text-xl" />
+              {isDirty && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-white/70 dark:ring-gray-900/70" />}
             </button>
 
             {/* 主题切换 */}
@@ -702,7 +705,7 @@ export default function Header() {
             </button>
 
             {/* 设置按钮 */}
-            <button
+            {canEdit && <button
               className="p-2 ml-1 rounded-full btn-glass-hover text-gray-700 dark:text-gray-300 cursor-pointer"
               onClick={() => {
                 setIsManageOpen(true);
@@ -714,13 +717,13 @@ export default function Header() {
               data-insightflare-event-from="desktop"
             >
               <FiSettings className="text-xl" />
-            </button>
+            </button>}
           </div>
 
           {/* 移动端只显示创建计时器和菜单按钮 */}
           <div className="flex items-center md:hidden">
             {/* 移动端创建计时器按钮 */}
-            <button
+            {canEdit && <button
               className="p-2 rounded-full btn-glass-hover text-gray-700 dark:text-gray-300 cursor-pointer"
               onClick={() => {
                 setIsTimerTypeModalOpen(true);
@@ -732,7 +735,7 @@ export default function Header() {
               data-insightflare-event-from="mobile"
             >
               <FiPlus className="text-xl" />
-            </button>
+            </button>}
 
             {/* 移动端菜单按钮 */}
             <button
@@ -807,7 +810,7 @@ export default function Header() {
                   <span className="text-xs ml-2 flex-1 text-right">{t('header.language')}</span>
                 </button>
 
-                <button
+                {canEdit && <button
                   className="flex items-center justify-between p-3 rounded-lg bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-gray-200/60 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-black/20 cursor-pointer transition-colors"
                   onClick={() => {
                     setIsManageOpen(true);
@@ -821,9 +824,9 @@ export default function Header() {
                 >
                   <FiSettings className="text-xl" />
                   <span className="text-xs ml-2 flex-1 text-right">{t('header.settings')}</span>
-                </button>
+                </button>}
                 
-                {/* 添加"登录"按钮 */}
+                {/* 管理员登录 / 发布中心对所有访客可见 */}
                 <button
                   className="flex items-center justify-between p-3 rounded-lg bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-gray-200/60 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-black/20 cursor-pointer transition-colors"
                   onClick={() => {
@@ -855,7 +858,7 @@ export default function Header() {
                 </button>
 
                 {/* 背景设置按钮 */}
-                <button
+                {canEdit && <button
                   className="flex items-center justify-between p-3 rounded-lg bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-gray-200/60 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:bg-white/20 dark:hover:bg-black/20 cursor-pointer transition-colors"
                   onClick={() => {
                     setIsMenuOpen(false);
@@ -867,7 +870,7 @@ export default function Header() {
                 >
                   <FiImage className="text-xl" />
                   <span className="text-xs ml-2 flex-1 text-right">背景设置</span>
-                </button>
+                </button>}
 
                 {/* 全屏设置按钮 */}
                 <button
@@ -927,7 +930,7 @@ export default function Header() {
 
       {/* 管理计时器弹窗 */}
       <AnimatePresence>
-        {isManageOpen && (
+        {isManageOpen && canEdit && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1190,7 +1193,7 @@ export default function Header() {
 
       {/* 计时器类型选择模态框 */}
       <AnimatePresence>
-        {isTimerTypeModalOpen && (
+        {isTimerTypeModalOpen && canEdit && (
           <TimerTypeModal 
             onClose={closeAllModals}
             onSelectType={handleTimerTypeSelect}
@@ -1200,20 +1203,20 @@ export default function Header() {
 
       {/* 添加倒计时模态框 */}
       <AnimatePresence>
-        {isCountdownModalOpen && (
+        {isCountdownModalOpen && canEdit && (
           <AddTimerModal onClose={closeAllModals} />
         )}
       </AnimatePresence>
 
       {/* 添加秒表模态框 */}
       <AnimatePresence>
-        {isAnniversaryModalOpen && (
+        {isAnniversaryModalOpen && canEdit && (
           <AddAnniversaryModal onClose={closeAllModals} />
         )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {isStopwatchModalOpen && (
+        {isStopwatchModalOpen && canEdit && (
           <AddStopwatchModal onClose={closeAllModals} />
         )}
       </AnimatePresence>
@@ -1226,7 +1229,7 @@ export default function Header() {
 
       {/* 添加世界时钟模态框 */}
       <AnimatePresence>
-        {isWorldClockModalOpen && (
+        {isWorldClockModalOpen && canEdit && (
           <AddWorldClockModal onClose={closeAllModals} />
         )}
       </AnimatePresence>

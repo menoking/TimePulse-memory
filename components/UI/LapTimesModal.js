@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { FiTrash2, FiX } from 'react-icons/fi';
 import { useTranslation } from '../../hooks/useTranslation';
 
-export default function LapTimesModal({ onClose, laps, timerColor, onRenameLap, onDeleteLap }) {
+export default function LapTimesModal({ onClose, laps, timerColor, onRenameLap, onDeleteLap, readOnly = false }) {
   const { t, currentLang } = useTranslation();
   const [draftLabels, setDraftLabels] = useState({});
 
@@ -139,7 +139,7 @@ export default function LapTimesModal({ onClose, laps, timerColor, onRenameLap, 
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center gap-2">
+                {!readOnly && <div className="mt-3 flex items-center gap-2">
                   <input
                     type="text"
                     value={draftLabels[lap.id] || ''}
@@ -165,7 +165,8 @@ export default function LapTimesModal({ onClose, laps, timerColor, onRenameLap, 
                   >
                     <FiTrash2 />
                   </button>
-                </div>
+                </div>}
+                {readOnly && lap.label && <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{lap.label}</p>}
               </motion.div>
             );
           })}

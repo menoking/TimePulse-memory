@@ -1,477 +1,278 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FiX, FiSave, FiShare2, FiCopy, FiCheck, FiDownload, FiUpload, FiLock, FiWifiOff } from 'react-icons/fi';
-import { QRCodeSVG } from 'qrcode.react';
-import { v4 as uuidv4 } from 'uuid';
-import { saveToRemoteCache, getFromRemoteCache } from '../../utils/syncService';
-import { useTimers } from '../../context/TimerContext';
-import { useTheme } from '../../context/ThemeContext';
+import {
+  FiAlertTriangle,
+  FiCheckCircle,
+  FiCloud,
+  FiDatabase,
+  FiDownloadCloud,
+  FiHardDrive,
+  FiLogIn,
+  FiLogOut,
+  FiUploadCloud,
+  FiX
+} from 'react-icons/fi';
+import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
+import { useTimers } from '../../context/SupabaseTimerContext';
 import { useTranslation } from '../../hooks/useTranslation';
 
 export default function LoginModal({ onClose }) {
-  const { timers, addTimer } = useTimers();
-  const { accentColor } = useTheme();
   const { t } = useTranslation();
-  const [syncId, setSyncId] = useState('');
-  const [syncUrl, setSyncUrl] = useState('');
+  const {
+    isSupabaseConfigured,
+    isAuthLoading,
+    isAdmin,
+    user,
+    signIn,
+    signOut
+  } = useSupabaseAuth();
+  const {
+    timers,
+    isDirty,
+    isPublishing,
+    publishError,
+    loadError,
+    loadErrorCode,
+    dataSource,
+    publishedVersion,
+    publishedAt,
+    hasLocalImport,
+    localImportCount,
+    importLocalTimers,
+    publishTimers,
+    refreshPublicData
+  } = useTimers();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [inputSyncId, setInputSyncId] = useState('');
-  const [inputPassword, setInputPassword] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [status, setStatus] = useState('idle'); // idle, generated, saved
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [showLogin, setShowLogin] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
-  
-  // 初始化 - 检查是否已有同步ID
-  useEffect(() => {
-    const savedSyncId = localStorage.getItem('timepulse_sync_id');
-    const savedPassword = localStorage.getItem('timepulse_sync_password');
-    
-    if (savedSyncId) {
-      setSyncId(savedSyncId);
-      setStatus('saved');
-      
-      if (savedPassword) {
-        setPassword(savedPassword);
-      }
-      
-      // 生成同步URL
-      const url = `${window.location.origin}${window.location.pathname}?syncId=${savedSyncId}${savedPassword ? `&syncPass=${savedPassword}` : ''}`;
-      setSyncUrl(url);
-    }
-  }, []);
-  
-  // 检查网络状态
-  useEffect(() => {
-    const checkOnlineStatus = () => {
-      setIsOffline(!navigator.onLine);
-    };
-    
-    // 初始检查
-    checkOnlineStatus();
-    
-    // 监听状态变化
-    window.addEventListener('online', checkOnlineStatus);
-    window.addEventListener('offline', checkOnlineStatus);
-    
-    // 清理
-    return () => {
-      window.removeEventListener('online', checkOnlineStatus);
-      window.removeEventListener('offline', checkOnlineStatus);
-    };
-  }, []);
-  
-  // 监听应用恢复在线状态
-  useEffect(() => {
-    const handleAppOnline = () => {
-      // 当应用恢复在线状态时，自动获取最新数据
-      if (syncId && password) {
-        loadFromRemote();
-      }
-    };
-    
-    window.addEventListener('appOnline', handleAppOnline);
-    return () => window.removeEventListener('appOnline', handleAppOnline);
-  }, [syncId, password]);
-  
-  // 生成新的同步ID和密码，并自动保存上传
-  const generateSyncId = async () => {
-    setIsLoading(true);
-    setErrorMessage('');
-    const newSyncId = uuidv4();
-    const newPassword = Math.random().toString(36).substring(2, 10); // 简单的密码生成
-    
-    setSyncId(newSyncId);
-    setPassword(newPassword);
-    
+  const [isBusy, setIsBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [confirmImport, setConfirmImport] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+
+  const run = async (action, successMessage = '') => {
+    setIsBusy(true);
+    setError('');
+    setSuccess('');
     try {
-      // 保存到本地
-      localStorage.setItem('timepulse_sync_id', newSyncId);
-      localStorage.setItem('timepulse_sync_password', newPassword);
-      
-      // 生成同步URL
-      const url = `${window.location.origin}${window.location.pathname}?syncId=${newSyncId}&syncPass=${newPassword}`;
-      setSyncUrl(url);
-      
-      // 上传到远程
-      await saveToRemoteCache(newSyncId, newPassword, { timers }, 30 * 24 * 60 * 60 * 1000);
-      
-      // 更新状态为已保存
-      setStatus('saved');
-      setSuccessMessage(t('login.generated'));
-      console.log(`${t('login.syncIdSaved')}: ${newSyncId} - ${new Date().toLocaleString()}`);
-    } catch (error) {
-      setErrorMessage(`${t('login.generateError')}: ${error.message}`);
-      console.error('同步数据保存失败:', error);
-      // 仍然显示生成的ID和密码，但状态为generated而非saved
-      setStatus('generated');
+      await action();
+      if (successMessage) setSuccess(successMessage);
+    } catch (actionError) {
+      setError(actionError.message || t('admin.unknownError', '操作失败，请稍后重试。'));
     } finally {
-      setIsLoading(false);
+      setIsBusy(false);
     }
   };
-  
-  // 保存同步ID和密码到本地和远程
-  const saveSyncId = async () => {
-    setIsLoading(true);
-    setErrorMessage('');
-    
-    try {
-      // 先保存到本地
-      localStorage.setItem('timepulse_sync_id', syncId);
-      localStorage.setItem('timepulse_sync_password', password);
-      
-      // 然后保存到远程
-      await saveToRemoteCache(syncId, password, { timers }, 30 * 24 * 60 * 60 * 1000);
-      
-      setStatus('saved');
-      setSuccessMessage('同步数据已保存到云端');
-      
-      // 记录日志
-      console.log(`${t('login.syncIdSaved')}: ${syncId} - ${new Date().toLocaleString()}`);
-    } catch (error) {
-      setErrorMessage(`保存失败: ${error.message}`);
-      console.error('同步数据保存失败:', error);
-    } finally {
-      setIsLoading(false);
+
+  const handleLogin = event => {
+    event.preventDefault();
+    run(
+      () => signIn(email.trim(), password),
+      t('admin.loginSuccess', '管理员登录成功。')
+    );
+  };
+
+  const handlePublish = () => run(
+    publishTimers,
+    t('admin.publishSuccess', '发布成功，访客刷新后即可看到最新内容。')
+  );
+
+  const handleImport = () => {
+    if (!confirmImport) {
+      setConfirmImport(true);
+      return;
     }
+    const imported = importLocalTimers();
+    setConfirmImport(false);
+    if (imported) setSuccess(t('admin.importSuccess', '本机计时器已导入草稿，请检查后再发布。'));
   };
-  
-  // 复制同步URL
-  const copyUrl = () => {
-    navigator.clipboard.writeText(syncUrl)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      })
-      .catch(err => {
-        setErrorMessage(`无法复制URL: ${err.message}`);
-        console.error('复制URL失败:', err);
-      });
-  };
-  
-  // 从远程加载数据
-  const loadFromRemote = async (event) => {
-    if (event) event.preventDefault();
-    setIsLoading(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-    
-    try {
-      const syncData = await getFromRemoteCache(
-        inputSyncId || syncId, 
-        inputPassword || password
-      );
-      
-      // 确保数据格式正确
-      if (syncData && syncData.timers && Array.isArray(syncData.timers) && syncData.timers.length > 0) {
-        // 导入计时器
-        syncData.timers.forEach(timer => {
-          addTimer(timer);
-        });
-        
-        // 如果使用输入的ID，则保存为当前设备的同步ID
-        if (inputSyncId) {
-          localStorage.setItem('timepulse_sync_id', inputSyncId);
-          localStorage.setItem('timepulse_sync_password', inputPassword);
-          setSyncId(inputSyncId);
-          setPassword(inputPassword);
-          setStatus('saved');
-          
-          // 更新同步URL
-          const url = `${window.location.origin}${window.location.pathname}?syncId=${inputSyncId}&syncPass=${inputPassword}`;
-          setSyncUrl(url);
-        }
-        
-        setSuccessMessage(`成功导入 ${syncData.timers.length} 个计时器`);
-        console.log(`已从远程同步 ${syncData.timers.length} 个计时器 - ${new Date().toLocaleString()}`);
-      } else {
-        setErrorMessage('远程数据无效或不包含计时器');
-      }
-    } catch (error) {
-      // 确保错误消息有意义
-      const errorMsg = error.message === '查询成功' ? '远程数据格式错误或为空' : error.message;
-      setErrorMessage(`加载失败: ${errorMsg}`);
-      console.error('从远程加载数据失败:', error);
-    } finally {
-      setIsLoading(false);
+
+  const handleRefresh = () => {
+    if (isDirty && !confirmDiscard) {
+      setConfirmDiscard(true);
+      return;
     }
+    run(
+      () => refreshPublicData({ discardDraft: confirmDiscard }),
+      t('admin.refreshSuccess', '已重新加载云端公开版本。')
+    );
+    setConfirmDiscard(false);
   };
-  
-  // 上传当前数据到远程
-  const uploadToRemote = async () => {
-    setIsLoading(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-    
-    try {
-      await saveToRemoteCache(
-        syncId, 
-        password, 
-        { timers }, 
-        30 * 24 * 60 * 60 * 1000
-      );
-      
-      setSuccessMessage(`成功上传 ${timers.length} 个计时器到云端`);
-      console.log(`已上传 ${timers.length} 个计时器到远程 - ${new Date().toLocaleString()}`);
-    } catch (error) {
-      setErrorMessage(`上传失败: ${error.message}`);
-      console.error('上传数据到远程失败:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
+
+  const disabled = isBusy || isPublishing || isAuthLoading;
+  const sourceLabel = t(`admin.sources.${dataSource}`, dataSource);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[600] backdrop-blur-sm overflow-y-auto py-4"
+      className="fixed inset-0 z-[600] flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="glass-card w-full max-w-md m-4 p-6 rounded-2xl max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
+        initial={{ y: 18, scale: 0.98, opacity: 0 }}
+        animate={{ y: 0, scale: 1, opacity: 1 }}
+        exit={{ y: 10, scale: 0.98, opacity: 0 }}
+        className="glass-card my-4 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-3xl p-6 sm:p-7"
+        onClick={event => event.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold">{t('login.title')}</h2>
-          <button
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-            onClick={onClose}
-          >
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-primary-500">
+              <FiCloud />
+              <span className="text-xs font-semibold uppercase tracking-[0.18em]">
+                {t('admin.eyebrow', 'Supabase 发布中心')}
+              </span>
+            </div>
+            <h2 className="text-2xl font-semibold">
+              {isAdmin ? t('admin.title', '公开计时器管理') : t('admin.loginTitle', '管理员登录')}
+            </h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {isAdmin
+                ? t('admin.description', '本机编辑保存为草稿，点击发布后访客才会看到变化。')
+                : t('admin.loginDescription', '访客无需登录；这里只供站点所有者发布内容。')}
+            </p>
+          </div>
+          <button className="rounded-full p-2 btn-glass-hover" onClick={onClose} aria-label={t('common.close', '关闭')}>
             <FiX className="text-xl" />
           </button>
         </div>
-        
-        {/* 离线状态提示 */}
-        {isOffline && (
-          <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-lg flex items-center">
-            <FiWifiOff className="mr-2 flex-shrink-0" />
-            <span>您当前处于离线模式，同步功能不可用。请恢复网络连接后重试。</span>
+
+        {!isSupabaseConfigured && (
+          <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-700 dark:text-amber-300">
+            <div className="flex items-start gap-3">
+              <FiAlertTriangle className="mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold">{t('admin.notConfigured', 'Supabase 尚未配置')}</p>
+                <p className="mt-1 leading-relaxed">
+                  {t('admin.notConfiguredHint', '请复制 .env.example 为 .env.local，填写 Project URL 与 Publishable Key，再重新启动或部署。当前应用继续使用本地模式。')}
+                </p>
+              </div>
+            </div>
           </div>
         )}
-        
-        {/* 错误和成功提示 */}
-        {errorMessage && (
-          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg">
-            {errorMessage}
+
+        {error && (
+          <div className="mb-4 rounded-2xl border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-600 dark:text-red-300">
+            {error}
           </div>
         )}
-        
-        {successMessage && (
-          <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg">
-            {successMessage}
+        {(publishError && !error) && (
+          <div className="mb-4 rounded-2xl border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-600 dark:text-red-300">
+            {publishError}
           </div>
         )}
-        
-        <div className="mb-6">
-          <p className="text-gray-600 dark:text-gray-300 mb-4">
-            {t('login.description')}
-          </p>
-          
-          {/* 切换创建/登录选项卡 */}
-          {status === 'idle' && (
-            <div className="flex mb-4">
-              <button
-                className={`flex-1 py-2 border-b-2 ${!showLogin ? 'border-primary-500 text-primary-500' : 'border-gray-300 text-gray-500'}`}
-                onClick={() => setShowLogin(false)}
-              >
-                {t('login.generateId')}
-              </button>
-              <button
-                className={`flex-1 py-2 border-b-2 ${showLogin ? 'border-primary-500 text-primary-500' : 'border-gray-300 text-gray-500'}`}
-                onClick={() => setShowLogin(true)}
-              >
-                {t('login.useExistingId')}
-              </button>
-            </div>
-          )}
-          
-          {/* 创建同步ID */}
-          {status === 'idle' && !showLogin && (
-            <div className="flex justify-center">
-              <button
-                className="btn-glass-primary"
-                onClick={generateSyncId}
-                data-insightflare-event="sync_generate"
-                disabled={isLoading}
-              >
-                {isLoading ? t('login.generating') : t('login.generateId')}
-              </button>
-            </div>
-          )}
-          
-          {/* 登录同步ID */}
-          {status === 'idle' && showLogin && (
-            <form onSubmit={loadFromRemote} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">{t('login.syncId')}</label>
-                <input
-                  type="text"
-                  value={inputSyncId}
-                  onChange={(e) => setInputSyncId(e.target.value)}
-                  placeholder={t('login.syncIdPlaceholder', '输入您的同步ID')}
-                  className="w-full px-4 py-2 rounded-lg bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-white/20 dark:border-white/10 focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">{t('login.password')}</label>
-                <input
-                  type="password"
-                  value={inputPassword}
-                  onChange={(e) => setInputPassword(e.target.value)}
-                  placeholder={t('login.password')}
-                  className="w-full px-4 py-2 rounded-lg bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-white/20 dark:border-white/10 focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                  required
-                />
-              </div>
-              
-              <button
-                type="submit"
-                className="w-full btn-glass-primary flex items-center justify-center"
-                disabled={isLoading}
-                data-insightflare-event="sync_login_submit"
-              >
-                <FiDownload className="mr-2" />
-                {isLoading ? t('common.loading') : t('login.loginAndSync')}
-              </button>
-            </form>
-          )}
-          
-          {/* 显示同步信息 */}
-          {(status === 'generated' || status === 'saved') && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">{t('login.yourSyncId', '您的同步ID')}</label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={syncId}
-                    readOnly
-                    className="flex-1 px-4 py-2 rounded-lg bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-white/20 dark:border-white/10 focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                  />
-                  {status === 'generated' && (
-                    <button
-                      className="ml-2 btn-glass-primary"
-                      onClick={saveSyncId}
-                      data-insightflare-event="sync_save_id"
-                      disabled={isLoading}
-                    >
-                      <FiSave />
-                    </button>
-                  )}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">{t('login.passwordLabel', '密码')}</label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={password}
-                    readOnly
-                    className="flex-1 px-4 py-2 rounded-lg bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-white/20 dark:border-white/10 focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">{t('login.syncLink', '同步链接')}</label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={syncUrl}
-                    readOnly
-                    className="flex-1 px-4 py-2 rounded-l-lg bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-white/20 dark:border-white/10 focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                  />
-                  <button
-                    className={`btn-glass-primary rounded-r-lg rounded-l-none ${copied ? 'bg-green-500/30 border-green-500/40' : ''}`}
-                    onClick={copyUrl}
-                    data-insightflare-event="sync_link_copy"
-                  >
-                    {copied ? <FiCheck /> : <FiCopy />}
-                  </button>
-                </div>
-              </div>
-              
-              {status === 'saved' && (
-                <div className="flex space-x-2">
-                  <button
-                    className={`flex-1 btn-glass-primary flex items-center justify-center ${isOffline ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={isOffline ? null : uploadToRemote}
-                    data-insightflare-event="sync_upload"
-                    disabled={isLoading || isOffline}
-                  >
-                    <FiUpload className="mr-2" />
-                    {isLoading ? t('login.uploading', '上传中...') : t('login.uploadData', '上传当前数据')}
-                  </button>
-                  
-                  <button
-                    className={`flex-1 btn-glass-primary flex items-center justify-center ${isOffline ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={isOffline ? null : loadFromRemote}
-                    data-insightflare-event="sync_download"
-                    disabled={isLoading || isOffline}
-                  >
-                    <FiDownload className="mr-2" />
-                    {isLoading ? t('login.downloading', '下载中...') : t('login.downloadData', '下载最新数据')}
-                  </button>
-                </div>
-              )}
-              
-              <div className="flex justify-center mt-4">
-                <div className="p-4 bg-white rounded-xl">
-                  <QRCodeSVG
-                    value={syncUrl}
-                    size={200}
-                    level="H"
-                    includeMargin={true}
-                  />
-                </div>
-              </div>
-              
-              {status === 'saved' && (
-                <div className="text-center text-green-500 font-medium">
-                  ✓ {t('login.syncIdSaved', '同步ID已保存')}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        
-        <div className="flex space-x-4">
-          <button
-            className="flex-1 btn-glass-secondary flex items-center justify-center z-[650]"
-            onClick={onClose}
-            disabled={isLoading}
-          >
-            {t('common.close', '关闭')}
-          </button>
-          {(status === 'generated' || status === 'saved') && navigator.share && (
-            <button
-              className="flex-1 btn-glass-primary flex items-center justify-center z-[650]"
-              onClick={() => {
-                navigator.share({
-                  title: '登录到我的TimePulse',
-                  text: '使用此链接登录并同步我的TimePulse倒计时',
-                  url: syncUrl
-                });
-              }}
-              data-insightflare-event="sync_link_share"
-              disabled={isLoading}
-            >
-              <FiShare2 className="mr-2" />
-              {t('login.shareButton', '分享')}
+        {(isSupabaseConfigured && loadError && !error && !publishError) && (
+          <div className="mb-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+            {loadErrorCode === 'PGRST205'
+              ? t('admin.databaseMissing', 'Supabase 数据表尚未初始化。请先在 SQL Editor 运行项目中的迁移文件。')
+              : t('admin.cloudLoadFailed', '暂时无法读取 Supabase，请检查网络和项目配置。')}
+          </div>
+        )}
+        {success && (
+          <div className="mb-4 flex items-start gap-2 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
+            <FiCheckCircle className="mt-0.5 shrink-0" />{success}
+          </div>
+        )}
+
+        {isSupabaseConfigured && !isAdmin && (
+          <form className="space-y-4" onSubmit={handleLogin}>
+            <label className="block text-sm font-medium">
+              {t('admin.email', '管理员邮箱')}
+              <input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={event => setEmail(event.target.value)}
+                className="mt-1.5 w-full rounded-2xl border border-white/20 bg-white/15 px-4 py-3 outline-none focus:ring-2 focus:ring-primary-500/40 dark:border-white/10 dark:bg-black/15"
+                required
+              />
+            </label>
+            <label className="block text-sm font-medium">
+              {t('admin.password', '密码')}
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={event => setPassword(event.target.value)}
+                className="mt-1.5 w-full rounded-2xl border border-white/20 bg-white/15 px-4 py-3 outline-none focus:ring-2 focus:ring-primary-500/40 dark:border-white/10 dark:bg-black/15"
+                required
+              />
+            </label>
+            <button type="submit" className="btn-glass-primary flex w-full items-center justify-center gap-2 py-3" disabled={disabled}>
+              <FiLogIn />{disabled ? t('common.loading', '加载中...') : t('admin.login', '登录管理')}
             </button>
-          )}
-        </div>
+          </form>
+        )}
+
+        {isAdmin && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 dark:bg-black/10">
+                <div className="text-xs text-gray-500">{t('admin.currentSource', '当前数据')}</div>
+                <div className="mt-1 flex items-center gap-2 font-semibold"><FiDatabase />{sourceLabel}</div>
+              </div>
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 dark:bg-black/10">
+                <div className="text-xs text-gray-500">{t('admin.timerCount', '计时器数量')}</div>
+                <div className="mt-1 text-lg font-semibold">{timers.length}</div>
+              </div>
+            </div>
+
+            <div className={`rounded-2xl border p-4 ${isDirty ? 'border-amber-400/30 bg-amber-400/10' : 'border-emerald-400/30 bg-emerald-400/10'}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold">{isDirty ? t('admin.draftPending', '有未发布的更改') : t('admin.published', '当前内容已发布')}</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {publishedVersion ? `v${publishedVersion}` : t('admin.neverPublished', '尚未首次发布')}
+                    {publishedAt ? ` · ${new Date(publishedAt).toLocaleString()}` : ''}
+                  </p>
+                </div>
+                {isDirty ? <FiHardDrive className="text-amber-500" /> : <FiCheckCircle className="text-emerald-500" />}
+              </div>
+            </div>
+
+            {hasLocalImport && (
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 dark:bg-black/10">
+                <div className="flex items-start gap-3">
+                  <FiHardDrive className="mt-1 shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-semibold">{t('admin.localDataFound', '发现本机旧数据')}</p>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      {t('admin.localDataCount', '当前浏览器中有 {{count}} 个计时器，可导入为发布草稿。').replace('{{count}}', localImportCount)}
+                    </p>
+                    {confirmImport && <p className="mt-2 text-xs text-amber-600 dark:text-amber-300">{t('admin.importConfirm', '再次点击将用本机旧数据替换当前草稿。')}</p>}
+                    <button type="button" className="mt-3 btn-glass-secondary flex items-center gap-2" onClick={handleImport} disabled={disabled}>
+                      <FiDownloadCloud />{confirmImport ? t('common.confirm', '确认') : t('admin.importLocal', '导入本机数据')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {confirmDiscard && (
+              <div className="rounded-2xl border border-red-400/30 bg-red-400/10 p-3 text-sm text-red-600 dark:text-red-300">
+                {t('admin.discardConfirm', '再次点击“重新加载云端”将永久放弃当前未发布草稿。')}
+              </div>
+            )}
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button type="button" className="btn-glass-secondary flex items-center justify-center gap-2 py-3" onClick={handleRefresh} disabled={disabled}>
+                <FiDownloadCloud />{t('admin.reloadPublic', '重新加载云端')}
+              </button>
+              <button type="button" className="btn-glass-primary flex items-center justify-center gap-2 py-3" onClick={handlePublish} disabled={disabled || !timers.length || (!isDirty && Boolean(publishedVersion))}>
+                <FiUploadCloud />{isPublishing ? t('admin.publishing', '发布中...') : t('admin.publish', '发布给访客')}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between border-t border-white/15 pt-4">
+              <span className="max-w-[70%] truncate text-xs text-gray-500">{user?.email}</span>
+              <button type="button" className="flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-red-500" onClick={() => run(signOut)} disabled={disabled}>
+                <FiLogOut />{t('admin.logout', '退出管理')}
+              </button>
+            </div>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );

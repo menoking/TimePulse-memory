@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { intervalToDuration } from 'date-fns';
-import { useTimers } from '../../context/TimerContext';
+import { useTimers } from '../../context/SupabaseTimerContext';
 import { useFullscreen } from '../../context/FullscreenContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import DigitColumn from './DigitColumn';
@@ -16,7 +16,7 @@ import { getAnniversaryDuration, getAnniversaryTotalDays, getDaysUntil, getNextA
 const EMPTY_TIME_VALUE = { years: 0, months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
 
 export default function TimerDisplay() {
-  const { getActiveTimer, updateTimer, checkAndUpdateDefaultTimer } = useTimers();
+  const { getActiveTimer, updateTimer, checkAndUpdateDefaultTimer, canEdit } = useTimers();
   const { isFullscreen, timerFontSize, labelFontSize } = useFullscreen();
   const { t, currentLang } = useTranslation();
   const [timeValue, setTimeValue] = useState(EMPTY_TIME_VALUE);
@@ -30,6 +30,7 @@ export default function TimerDisplay() {
   const [showAnniversarySwitchHint, setShowAnniversarySwitchHint] = useState(false);
   const [totalDays, setTotalDays] = useState(0);
   const [nextAnniversary, setNextAnniversary] = useState(null);
+  const [visitorDisplayMode, setVisitorDisplayMode] = useState('totalDays');
   
   // 使用 ref 跟踪最后计算的时间，避免不必要的重渲染
   const lastTimeRef = useRef(EMPTY_TIME_VALUE);
@@ -401,6 +402,10 @@ export default function TimerDisplay() {
   const activeTimer = getActiveTimer();
 
   useEffect(() => {
+    setVisitorDisplayMode(activeTimer?.displayMode === 'totalDays' ? 'totalDays' : 'precise');
+  }, [activeTimer?.id, activeTimer?.displayMode]);
+
+  useEffect(() => {
     try {
       setShowAnniversarySwitchHint(localStorage.getItem('timepulse-anniversary-switch-hint-seen') !== 'true');
     } catch (error) {
@@ -442,7 +447,9 @@ export default function TimerDisplay() {
   const anniversaryUnits = ['years', 'months', 'days', 'hours', 'minutes', 'seconds'];
   const firstAnniversaryValue = anniversaryUnits.findIndex(unit => timeValue[unit] > 0);
   const visibleAnniversaryUnits = firstAnniversaryValue < 0 ? ['seconds'] : anniversaryUnits.slice(firstAnniversaryValue);
-  const anniversaryDisplayMode = activeTimer?.displayMode === 'totalDays' ? 'totalDays' : 'precise';
+  const anniversaryDisplayMode = canEdit
+    ? (activeTimer?.displayMode === 'totalDays' ? 'totalDays' : 'precise')
+    : visitorDisplayMode;
 
   if (!activeTimer) {
     return (
@@ -483,7 +490,8 @@ export default function TimerDisplay() {
     if (activeTimer.type !== 'anniversary') return;
 
     const nextMode = anniversaryDisplayMode === 'totalDays' ? 'precise' : 'totalDays';
-    updateTimer(activeTimer.id, { displayMode: nextMode });
+    if (canEdit) updateTimer(activeTimer.id, { displayMode: nextMode });
+    else setVisitorDisplayMode(nextMode);
     setShowAnniversarySwitchHint(false);
     try {
       localStorage.setItem('timepulse-anniversary-switch-hint-seen', 'true');
@@ -668,7 +676,7 @@ export default function TimerDisplay() {
       )}
       
       {/* 秒表控制按钮 */}
-      {activeTimer.type === 'stopwatch' && (
+      {activeTimer.type === 'stopwatch' && canEdit && (
         <motion.div 
           className="mt-8 flex space-x-4 relative"
           style={{ 
@@ -724,7 +732,7 @@ export default function TimerDisplay() {
       
       {/* 倒计时结束提示 */}
       <AnimatePresence>
-        {isMilestonesOpen && activeTimer.type === 'anniversary' && <MilestonesModal timer={activeTimer} onClose={() => setIsMilestonesOpen(false)} onChange={milestones => updateTimer(activeTimer.id, { milestones })} />}
+        {isMilestonesOpen && activeTimer.type === 'anniversary' && <MilestonesModal timer={activeTimer} readOnly={!canEdit} onClose={() => setIsMilestonesOpen(false)} onChange={milestones => updateTimer(activeTimer.id, { milestones })} />}
       </AnimatePresence>
 
       <AnimatePresence>
@@ -794,12 +802,13 @@ export default function TimerDisplay() {
             timerColor={activeTimer.color}
             onRenameLap={handleRenameLap}
             onDeleteLap={handleDeleteLap}
+            readOnly={!canEdit}
           />
         )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {isStopConfirmOpen && activeTimer.type === 'stopwatch' && (
+        {isStopConfirmOpen && activeTimer.type === 'stopwatch' && canEdit && (
           <StopwatchStopConfirmModal
             onClose={() => setIsStopConfirmOpen(false)}
             onConfirm={() => {

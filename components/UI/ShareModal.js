@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiX, FiCopy, FiShare2, FiCheck, FiList } from 'react-icons/fi';
 import { QRCodeSVG } from 'qrcode.react';
-import { useTimers } from '../../context/TimerContext';
+import { useTimers } from '../../context/SupabaseTimerContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { createShareUrl } from '../../utils/shareUtils';
